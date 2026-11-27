@@ -1,0 +1,74 @@
+# Canonical test name aliases (matched case-insensitively with rapidfuzz >= 90)
+hba1c:
+  - HbA1c
+  - HbA1C
+  - A1c
+  - Glycated Hb
+  - Glycated Hemoglobin
+  - Glycosylated Hemoglobin
+  - Hemoglobin A1c
+
+fasting_glucose:
+  - Fasting glucose
+  - Fasting Blood Sugar
+  - FBS
+  - FPG
+  - Fasting Plasma Glucose
+  - Blood Glucose Fasting
+  - Glucose Fasting
+
+postprandial_glucose:
+  - Postprandial glucose
+  - Post-meal glucose
+  - PPBS
+  - PP Blood Sugar
+  - 2hr PP Glucose
+  - Post Prandial Blood Sugar
+
+random_glucose:
+  - Random glucose
+  - RBS
+  - Random Blood Sugar
+  - Blood Glucose Random
+
+creatinine:
+  - Creatinine
+  - Serum Creatinine
+  - S. Creatinine
+  - Creatinine Serum
+
+egfr:
+  - eGFR
+  - Estimated GFR
+  - GFR
+
+uacr:
+  - uacr
+  - UACR
+  - ACR
+  - Urine albumin / creatinine
+  - Urine Albumin Creatinine Ratio
+  - Urine Albumin-to-Creatinine Ratio
+  - Microalbumin Creatinine Ratio
+
+total_cholesterol:
+  - Total cholesterol
+  - Cholesterol Total
+  - Serum Cholesterol
+
+ldl:
+  - LDL
+  - LDL cholesterol
+  - LDL-C
+  - Low Density Lipoprotein
+
+hdl:
+  - HDL
+  - HDL cholesterol
+  - HDL-C
+  - High Density Lipoprotein
+
+triglycerides:
+  - Triglycerides
+  - TG
+  - Serum Triglycerides

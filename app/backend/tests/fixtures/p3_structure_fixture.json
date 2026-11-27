@@ -1,0 +1,10 @@
+{
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "{\"kind\":\"lab\",\"source_org\":\"Valley Diagnostics\",\"doc_date\":\"09 Sep 2023\",\"doc_date_block\":\"b1\",\"observations\":[{\"label\":\"HbA1c\",\"value\":\"7.6\",\"unit\":\"%\",\"block_id\":\"b2\",\"uncertain\":false,\"note\":null},{\"label\":\"Fasting glucose\",\"value\":\"8.9\",\"unit\":\"mmol/L\",\"block_id\":\"b3\",\"uncertain\":false,\"note\":null}],\"medications\":[]}"
+      }
+    }
+  ]
+}

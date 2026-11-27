@@ -1,0 +1,87 @@
+{
+  "patient": {
+    "display_name": "Ramesh Kumar",
+    "age": 58,
+    "gender": "M",
+    "language": "hi"
+  },
+  "papers": [
+    {
+      "id": "p1",
+      "kind": "lab",
+      "org": "Sunrise Pathology",
+      "theme": "sunrise",
+      "date": "14 Feb 2023",
+      "rows": [
+        { "label": "HbA1c", "value": "7.2", "unit": "%", "test": "hba1c" },
+        { "label": "Fasting glucose", "value": "142", "unit": "mg/dL", "test": "fasting_glucose" }
+      ]
+    },
+    {
+      "id": "p2",
+      "kind": "rx",
+      "org": "Dr. A · General Physician",
+      "theme": "dra",
+      "date": "20 Feb 2023",
+      "rows": [
+        { "label": "Tab. Glycomet 500", "value": "1-0-1", "med_name": "Tab. Glycomet", "strength": "500 mg", "frequency": "1-0-1" }
+      ]
+    },
+    {
+      "id": "p3",
+      "kind": "lab",
+      "org": "Valley Diagnostics",
+      "theme": "valley",
+      "date": "09 Sep 2023",
+      "rows": [
+        { "label": "HbA1c", "value": "7.6", "unit": "%", "test": "hba1c" },
+        { "label": "Fasting glucose", "value": "8.9", "unit": "mmol/L", "test": "fasting_glucose" }
+      ]
+    },
+    {
+      "id": "p4",
+      "kind": "lab",
+      "org": "Sunrise Pathology",
+      "theme": "sunrise",
+      "date": "18 Jun 2024",
+      "rows": [
+        { "label": "HbA1c", "value": "8.3", "unit": "%", "test": "hba1c" },
+        { "label": "Creatinine", "value": "1.1", "unit": "mg/dL", "test": "creatinine" },
+        { "label": "LDL cholesterol", "value": "128", "unit": "mg/dL", "test": "ldl" }
+      ]
+    },
+    {
+      "id": "p5",
+      "kind": "rx",
+      "org": "Dr. B · Diabetes Clinic",
+      "theme": "drb",
+      "date": "02 Jul 2024",
+      "rows": [
+        { "label": "Tab. Glycomet 500", "value": "1-0-1", "med_name": "Tab. Glycomet", "strength": "500 mg", "frequency": "1-0-1" },
+        { "label": "Tab. Amaryl 1 mg", "value": "1-0-0", "med_name": "Tab. Amaryl", "strength": "1 mg", "frequency": "1-0-0", "smudge_strength": true, "uncertain": true }
+      ]
+    },
+    {
+      "id": "p6",
+      "kind": "lab",
+      "org": "City Health Lab",
+      "theme": "city",
+      "date": "21 Aug 2025",
+      "rows": [
+        { "label": "Creatinine", "value": "1.2", "unit": "mg/dL", "test": "creatinine" },
+        { "label": "Urine albumin / creatinine", "value": "24", "unit": "mg/g", "test": "uacr" }
+      ]
+    },
+    {
+      "id": "p7",
+      "kind": "lab",
+      "org": "Valley Diagnostics",
+      "theme": "valley",
+      "date": "12 Aug 2026",
+      "rows": [
+        { "label": "HbA1c", "value": "8.9", "unit": "%", "test": "hba1c" },
+        { "label": "Fasting glucose", "value": "176", "unit": "mg/dL", "test": "fasting_glucose" }
+      ]
+    }
+  ]
+}

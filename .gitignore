@@ -1,0 +1,21 @@
+# Environments
+.env
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Node / Frontend
+node_modules/
+app/frontend/dist/
+
+# Runtime data & SQLite
+*.db
+*.sqlite
+*.sqlite3
+data/uploads/
+data/cache/

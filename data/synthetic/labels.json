@@ -1,0 +1,334 @@
+[
+  {
+    "id": "p1_clean",
+    "paper_id": "p1",
+    "variant": "clean",
+    "image_path": "data/synthetic/images/p1.png",
+    "kind": "lab",
+    "org": "Sunrise Pathology",
+    "date": "14 Feb 2023",
+    "rows": [
+      {
+        "label": "HbA1c",
+        "value": "7.2",
+        "unit": "%",
+        "test": "hba1c"
+      },
+      {
+        "label": "Fasting glucose",
+        "value": "142",
+        "unit": "mg/dL",
+        "test": "fasting_glucose"
+      }
+    ]
+  },
+  {
+    "id": "p1_damaged",
+    "paper_id": "p1",
+    "variant": "damaged",
+    "image_path": "data/synthetic/images/p1_damaged.jpg",
+    "kind": "lab",
+    "org": "Sunrise Pathology",
+    "date": "14 Feb 2023",
+    "rows": [
+      {
+        "label": "HbA1c",
+        "value": "7.2",
+        "unit": "%",
+        "test": "hba1c"
+      },
+      {
+        "label": "Fasting glucose",
+        "value": "142",
+        "unit": "mg/dL",
+        "test": "fasting_glucose"
+      }
+    ]
+  },
+  {
+    "id": "p2_clean",
+    "paper_id": "p2",
+    "variant": "clean",
+    "image_path": "data/synthetic/images/p2.png",
+    "kind": "rx",
+    "org": "Dr. A \u00b7 General Physician",
+    "date": "20 Feb 2023",
+    "rows": [
+      {
+        "label": "Tab. Glycomet 500",
+        "value": "1-0-1",
+        "med_name": "Tab. Glycomet",
+        "strength": "500 mg",
+        "frequency": "1-0-1"
+      }
+    ]
+  },
+  {
+    "id": "p2_damaged",
+    "paper_id": "p2",
+    "variant": "damaged",
+    "image_path": "data/synthetic/images/p2_damaged.jpg",
+    "kind": "rx",
+    "org": "Dr. A \u00b7 General Physician",
+    "date": "20 Feb 2023",
+    "rows": [
+      {
+        "label": "Tab. Glycomet 500",
+        "value": "1-0-1",
+        "med_name": "Tab. Glycomet",
+        "strength": "500 mg",
+        "frequency": "1-0-1"
+      }
+    ]
+  },
+  {
+    "id": "p3_clean",
+    "paper_id": "p3",
+    "variant": "clean",
+    "image_path": "data/synthetic/images/p3.png",
+    "kind": "lab",
+    "org": "Valley Diagnostics",
+    "date": "09 Sep 2023",
+    "rows": [
+      {
+        "label": "HbA1c",
+        "value": "7.6",
+        "unit": "%",
+        "test": "hba1c"
+      },
+      {
+        "label": "Fasting glucose",
+        "value": "8.9",
+        "unit": "mmol/L",
+        "test": "fasting_glucose"
+      }
+    ]
+  },
+  {
+    "id": "p3_damaged",
+    "paper_id": "p3",
+    "variant": "damaged",
+    "image_path": "data/synthetic/images/p3_damaged.jpg",
+    "kind": "lab",
+    "org": "Valley Diagnostics",
+    "date": "09 Sep 2023",
+    "rows": [
+      {
+        "label": "HbA1c",
+        "value": "7.6",
+        "unit": "%",
+        "test": "hba1c"
+      },
+      {
+        "label": "Fasting glucose",
+        "value": "8.9",
+        "unit": "mmol/L",
+        "test": "fasting_glucose"
+      }
+    ]
+  },
+  {
+    "id": "p4_clean",
+    "paper_id": "p4",
+    "variant": "clean",
+    "image_path": "data/synthetic/images/p4.png",
+    "kind": "lab",
+    "org": "Sunrise Pathology",
+    "date": "18 Jun 2024",
+    "rows": [
+      {
+        "label": "HbA1c",
+        "value": "8.3",
+        "unit": "%",
+        "test": "hba1c"
+      },
+      {
+        "label": "Creatinine",
+        "value": "1.1",
+        "unit": "mg/dL",
+        "test": "creatinine"
+      },
+      {
+        "label": "LDL cholesterol",
+        "value": "128",
+        "unit": "mg/dL",
+        "test": "ldl"
+      }
+    ]
+  },
+  {
+    "id": "p4_damaged",
+    "paper_id": "p4",
+    "variant": "damaged",
+    "image_path": "data/synthetic/images/p4_damaged.jpg",
+    "kind": "lab",
+    "org": "Sunrise Pathology",
+    "date": "18 Jun 2024",
+    "rows": [
+      {
+        "label": "HbA1c",
+        "value": "8.3",
+        "unit": "%",
+        "test": "hba1c"
+      },
+      {
+        "label": "Creatinine",
+        "value": "1.1",
+        "unit": "mg/dL",
+        "test": "creatinine"
+      },
+      {
+        "label": "LDL cholesterol",
+        "value": "128",
+        "unit": "mg/dL",
+        "test": "ldl"
+      }
+    ]
+  },
+  {
+    "id": "p5_clean",
+    "paper_id": "p5",
+    "variant": "clean",
+    "image_path": "data/synthetic/images/p5.png",
+    "kind": "rx",
+    "org": "Dr. B \u00b7 Diabetes Clinic",
+    "date": "02 Jul 2024",
+    "rows": [
+      {
+        "label": "Tab. Glycomet 500",
+        "value": "1-0-1",
+        "med_name": "Tab. Glycomet",
+        "strength": "500 mg",
+        "frequency": "1-0-1"
+      },
+      {
+        "label": "Tab. Amaryl 1 mg",
+        "value": "1-0-0",
+        "med_name": "Tab. Amaryl",
+        "strength": "1 mg",
+        "frequency": "1-0-0",
+        "smudge_strength": true,
+        "uncertain": true
+      }
+    ]
+  },
+  {
+    "id": "p5_damaged",
+    "paper_id": "p5",
+    "variant": "damaged",
+    "image_path": "data/synthetic/images/p5_damaged.jpg",
+    "kind": "rx",
+    "org": "Dr. B \u00b7 Diabetes Clinic",
+    "date": "02 Jul 2024",
+    "rows": [
+      {
+        "label": "Tab. Glycomet 500",
+        "value": "1-0-1",
+        "med_name": "Tab. Glycomet",
+        "strength": "500 mg",
+        "frequency": "1-0-1"
+      },
+      {
+        "label": "Tab. Amaryl 1 mg",
+        "value": "1-0-0",
+        "med_name": "Tab. Amaryl",
+        "strength": "1 mg",
+        "frequency": "1-0-0",
+        "smudge_strength": true,
+        "uncertain": true
+      }
+    ]
+  },
+  {
+    "id": "p6_clean",
+    "paper_id": "p6",
+    "variant": "clean",
+    "image_path": "data/synthetic/images/p6.png",
+    "kind": "lab",
+    "org": "City Health Lab",
+    "date": "21 Aug 2025",
+    "rows": [
+      {
+        "label": "Creatinine",
+        "value": "1.2",
+        "unit": "mg/dL",
+        "test": "creatinine"
+      },
+      {
+        "label": "Urine albumin / creatinine",
+        "value": "24",
+        "unit": "mg/g",
+        "test": "uacr"
+      }
+    ]
+  },
+  {
+    "id": "p6_damaged",
+    "paper_id": "p6",
+    "variant": "damaged",
+    "image_path": "data/synthetic/images/p6_damaged.jpg",
+    "kind": "lab",
+    "org": "City Health Lab",
+    "date": "21 Aug 2025",
+    "rows": [
+      {
+        "label": "Creatinine",
+        "value": "1.2",
+        "unit": "mg/dL",
+        "test": "creatinine"
+      },
+      {
+        "label": "Urine albumin / creatinine",
+        "value": "24",
+        "unit": "mg/g",
+        "test": "uacr"
+      }
+    ]
+  },
+  {
+    "id": "p7_clean",
+    "paper_id": "p7",
+    "variant": "clean",
+    "image_path": "data/synthetic/images/p7.png",
+    "kind": "lab",
+    "org": "Valley Diagnostics",
+    "date": "12 Aug 2026",
+    "rows": [
+      {
+        "label": "HbA1c",
+        "value": "8.9",
+        "unit": "%",
+        "test": "hba1c"
+      },
+      {
+        "label": "Fasting glucose",
+        "value": "176",
+        "unit": "mg/dL",
+        "test": "fasting_glucose"
+      }
+    ]
+  },
+  {
+    "id": "p7_damaged",
+    "paper_id": "p7",
+    "variant": "damaged",
+    "image_path": "data/synthetic/images/p7_damaged.jpg",
+    "kind": "lab",
+    "org": "Valley Diagnostics",
+    "date": "12 Aug 2026",
+    "rows": [
+      {
+        "label": "HbA1c",
+        "value": "8.9",
+        "unit": "%",
+        "test": "hba1c"
+      },
+      {
+        "label": "Fasting glucose",
+        "value": "176",
+        "unit": "mg/dL",
+        "test": "fasting_glucose"
+      }
+    ]
+  }
+]

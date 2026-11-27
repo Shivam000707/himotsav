@@ -1,0 +1,112 @@
+[
+  {
+    "id": "diabetes_years",
+    "topic": "Years with diabetes",
+    "text_hi": "नमस्ते! आपको शुगर (डायबिटीज़) कितने साल से है?",
+    "text_en": "Hello! How many years have you had sugar (diabetes)?",
+    "type": "number",
+    "unit_hi": "साल",
+    "unit_en": "years",
+    "allow_details": true
+  },
+  {
+    "id": "current_meds",
+    "topic": "Current medicines",
+    "text_hi": "आप आजकल कौन-कौन सी दवाइयाँ लेते हैं?",
+    "text_en": "Which medicines do you take these days?",
+    "type": "meds_multi",
+    "options": [
+      { "value": "Glycomet", "label_hi": "ग्लाइकोमेट (Glycomet)", "label_en": "Glycomet (metformin)" },
+      { "value": "Glycomet GP", "label_hi": "ग्लाइकोमेट जीपी (Glycomet GP)", "label_en": "Glycomet GP" },
+      { "value": "Amaryl", "label_hi": "अमारिल (Amaryl)", "label_en": "Amaryl (glimepiride)" },
+      { "value": "Janumet", "label_hi": "जानुमेट (Janumet)", "label_en": "Janumet" },
+      { "value": "Januvia", "label_hi": "जानुविया (Januvia)", "label_en": "Januvia" },
+      { "value": "Galvus Met", "label_hi": "गैल्वस मेट (Galvus Met)", "label_en": "Galvus Met" },
+      { "value": "Jardiance", "label_hi": "जार्डियंस (Jardiance)", "label_en": "Jardiance" },
+      { "value": "Forxiga", "label_hi": "फॉरक्सिगा (Forxiga)", "label_en": "Forxiga" },
+      { "value": "Lantus", "label_hi": "लैंटस (Lantus)", "label_en": "Lantus (insulin)" },
+      { "value": "Telma", "label_hi": "टेल्मा (Telma)", "label_en": "Telma" },
+      { "value": "Atorva", "label_hi": "अटोरवा (Atorva)", "label_en": "Atorva" },
+      { "value": "Rosuvas", "label_hi": "रोसुवास (Rosuvas)", "label_en": "Rosuvas" },
+      { "value": "Ecosprin", "label_hi": "इकोस्प्रिन (Ecosprin)", "label_en": "Ecosprin" },
+      { "value": "dont_know", "label_hi": "मुझे नाम याद नहीं", "label_en": "I don't know" }
+    ],
+    "frequencies": ["1-0-1", "1-0-0", "0-0-1", "1-1-1", "0-1-0"],
+    "allow_details": true
+  },
+  {
+    "id": "missed_doses",
+    "topic": "Missed doses",
+    "text_hi": "क्या कभी दवा लेना भूल जाते हैं?",
+    "text_en": "Do you ever forget to take your medicine?",
+    "type": "single_choice",
+    "options": [
+      { "value": "never", "label_hi": "कभी नहीं", "label_en": "Never" },
+      { "value": "less_than_weekly", "label_hi": "हफ़्ते में एक बार से कम", "label_en": "Less than weekly" },
+      { "value": "1_2_weekly", "label_hi": "हफ़्ते में 1–2 बार", "label_en": "1–2 times a week" },
+      { "value": "3_plus_weekly", "label_hi": "हफ़्ते में 3 या ज़्यादा बार", "label_en": "3 or more times a week" }
+    ],
+    "allow_details": true
+  },
+  {
+    "id": "shaky_sweaty",
+    "topic": "Shaky or sweaty spells",
+    "text_hi": "क्या कभी अचानक काँपना, पसीना आना या घबराहट होती है?",
+    "text_en": "Do you ever suddenly feel shaky, sweaty or uneasy?",
+    "type": "yes_no",
+    "options": [
+      { "value": "yes", "label_hi": "हाँ", "label_en": "Yes" },
+      { "value": "no", "label_hi": "नहीं", "label_en": "No" }
+    ],
+    "allow_details": true
+  },
+  {
+    "id": "urgent_symptoms",
+    "topic": "Urgent symptoms",
+    "text_hi": "क्या इनमें से कोई लक्षण अभी या हाल में हुआ है?",
+    "text_en": "Have you had any of these symptoms recently?",
+    "type": "multi_choice",
+    "options": [
+      { "value": "chest_pain", "label_hi": "सीने में दर्द", "label_en": "Chest pain" },
+      { "value": "fainting", "label_hi": "बेहोशी / चक्कर आकर गिरना", "label_en": "Fainting" },
+      { "value": "severe_breathlessness", "label_hi": "तेज़ साँस फूलना", "label_en": "Severe breathlessness" },
+      { "value": "none", "label_hi": "इनमें से कोई नहीं", "label_en": "None" }
+    ],
+    "allow_details": true
+  },
+  {
+    "id": "feet",
+    "topic": "Feet",
+    "text_hi": "पैरों में कोई घाव, सुन्नपन या झुनझुनी?",
+    "text_en": "Any wound, numbness or tingling in your feet?",
+    "type": "multi_choice",
+    "options": [
+      { "value": "non_healing_wound", "label_hi": "घाव जो भर नहीं रहा", "label_en": "Wound that is not healing" },
+      { "value": "numbness", "label_hi": "सुन्नपन", "label_en": "Numbness" },
+      { "value": "tingling", "label_hi": "झुनझुनी", "label_en": "Tingling" },
+      { "value": "none", "label_hi": "कोई नहीं", "label_en": "None" }
+    ],
+    "allow_details": true
+  },
+  {
+    "id": "eyes",
+    "topic": "Eyes",
+    "text_hi": "आँखों से देखने में कोई दिक्कत?",
+    "text_en": "Any trouble with your vision?",
+    "type": "single_choice",
+    "options": [
+      { "value": "fine", "label_hi": "आँखें ठीक हैं", "label_en": "Fine" },
+      { "value": "blurry", "label_hi": "धुंधला दिखता है", "label_en": "Blurry" },
+      { "value": "sudden_vision_loss", "label_hi": "अचानक दिखना कम या बंद हुआ", "label_en": "Sudden vision loss" }
+    ],
+    "allow_details": true
+  },
+  {
+    "id": "anything_else",
+    "topic": "Anything else",
+    "text_hi": "क्या कोई और बात है जो आप आज डॉक्टर को बताना चाहेंगे?",
+    "text_en": "Is there anything else you would like to tell the doctor today?",
+    "type": "text",
+    "allow_details": false
+  }
+]

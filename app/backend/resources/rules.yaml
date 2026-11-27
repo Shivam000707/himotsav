@@ -1,0 +1,47 @@
+# Draft thresholds from general knowledge. Must be reviewed by a doctor before being presented as clinically sound.
+
+thresholds:
+  hba1c_max_days: 90
+  kidney_max_days: 365
+  lipid_max_days: 365
+  rx_med_max_months: 30
+
+urgent_keywords:
+  - chest pain
+  - सीने में दर्द
+  - seene mein dard
+  - faint
+  - fainting
+  - बेहोश
+  - behosh
+  - breathless
+  - severe breathlessness
+  - साँस फूलना
+  - सांस फूलना
+  - saans phoolna
+  - sudden vision loss
+  - अचानक दिखना बंद
+  - non-healing foot wound
+  - constant vomiting
+
+low_sugar_keywords:
+  - shaky
+  - shakiness
+  - sweating
+  - sweaty
+  - trembling
+  - dizzy
+  - confused
+  - काँपना
+  - कांपना
+  - पसीना
+  - घबराहट
+  - चक्कर
+  - kaanpna
+  - paseena
+  - ghabrahat
+  - chakkar
+
+missed_dose_flag_values:
+  - 1_2_weekly
+  - 3_plus_weekly

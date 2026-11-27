@@ -1,0 +1,19 @@
+{
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "call_1",
+            "type": "function",
+            "function": {
+              "name": "markdown_bbox",
+              "arguments": "[{\"type\":\"Title\",\"text\":\"Valley Diagnostics\",\"bbox\":{\"xmin\":0.048,\"ymin\":0.027,\"xmax\":0.42,\"ymax\":0.06}},{\"type\":\"Text\",\"text\":\"Date: 09 Sep 2023\",\"bbox\":{\"xmin\":0.71,\"ymin\":0.128,\"xmax\":0.92,\"ymax\":0.15}},{\"type\":\"Text\",\"text\":\"HbA1c 7.6 %\",\"bbox\":{\"xmin\":0.064,\"ymin\":0.285,\"xmax\":0.85,\"ymax\":0.31}},{\"type\":\"Text\",\"text\":\"Fasting glucose 8.9 mmol/L\",\"bbox\":{\"xmin\":0.064,\"ymin\":0.333,\"xmax\":0.87,\"ymax\":0.36}}]"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
