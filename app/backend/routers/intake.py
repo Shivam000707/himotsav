@@ -43,6 +43,8 @@ def upsert_answer(
     patient = session.get(Patient, patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
+    if payload.question_id not in {q["id"] for q in load_questions()}:
+        raise HTTPException(status_code=400, detail=f"Unknown question id: {payload.question_id}")
 
     existing = session.exec(
         select(IntakeAnswer).where(
@@ -58,6 +60,7 @@ def upsert_answer(
         existing.confirmed = payload.confirmed
         existing.answered_at = datetime.now(timezone.utc)
         ans = existing
+        session.add(ans)
     else:
         ans = IntakeAnswer(
             patient_id=patient_id,
@@ -92,7 +95,7 @@ def upsert_answer(
                 freq = item.get("frequency")
             else:
                 continue
-            if not name:
+            if not name or name == "dont_know":
                 continue
             session.add(
                 Medication(

@@ -19,3 +19,6 @@ app/frontend/dist/
 *.sqlite3
 data/uploads/
 data/cache/
+
+# TypeScript build info
+*.tsbuildinfo

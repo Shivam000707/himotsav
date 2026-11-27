@@ -1,19 +1,28 @@
 {
+  "id": "chatcmpl-a5b3c193-14f1-4654-bf77-e678becb9dfc",
   "choices": [
     {
+      "index": 0,
       "message": {
-        "role": "assistant",
-        "tool_calls": [
-          {
-            "id": "call_1",
-            "type": "function",
-            "function": {
-              "name": "markdown_bbox",
-              "arguments": "[{\"type\":\"Title\",\"text\":\"Valley Diagnostics\",\"bbox\":{\"xmin\":0.048,\"ymin\":0.027,\"xmax\":0.42,\"ymax\":0.06}},{\"type\":\"Text\",\"text\":\"Date: 09 Sep 2023\",\"bbox\":{\"xmin\":0.71,\"ymin\":0.128,\"xmax\":0.92,\"ymax\":0.15}},{\"type\":\"Text\",\"text\":\"HbA1c 7.6 %\",\"bbox\":{\"xmin\":0.064,\"ymin\":0.285,\"xmax\":0.85,\"ymax\":0.31}},{\"type\":\"Text\",\"text\":\"Fasting glucose 8.9 mmol/L\",\"bbox\":{\"xmin\":0.064,\"ymin\":0.333,\"xmax\":0.87,\"ymax\":0.36}}]"
-            }
-          }
-        ]
-      }
+        "content": "[\n  {\"text\": \"Valley Diagnostics\", \"bbox\": [45, 25, 345, 52]},\n  {\"text\": \"PATHOLOGY LAB REPORT | Synthetic Demo Data\", \"bbox\": [45, 60, 530, 78]},\n  {\"text\": \"Patient: Ramesh Kumar | Age/Sex: 58 / M\", \"bbox\": [45, 126, 540, 148]},\n  {\"text\": \"Date: 09 Sep 2023\", \"bbox\": [705, 126, 915, 148]},\n  {\"text\": \"Test Result Unit\", \"bbox\": [55, 198, 810, 224]},\n  {\"text\": \"HbA1c 7.6 %\", \"bbox\": [55, 238, 790, 264]},\n  {\"text\": \"Fasting glucose 8.9 mmol/L\", \"bbox\": [55, 288, 840, 314]},\n  {\"text\": \"MediKiosk-DM Synthetic Test Document - Not a Real Patient Record\", \"bbox\": [45, 950, 680, 970]}\n]",
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
     }
-  ]
+  ],
+  "created": 1795771851,
+  "model": "private/nvidia/nemotron-3.5-super-120b-a12b",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 2017,
+    "completion_tokens": 313,
+    "total_tokens": 2330,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
 }

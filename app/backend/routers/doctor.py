@@ -42,7 +42,11 @@ def _load_patient_bundle(patient_id: int, session: Session) -> dict[str, Any]:
         page = pages.get(page_id) if page_id else None
         block = blocks.get(block_id) if block_id else None
         row_dict["source_org"] = doc.source_org if doc else None
+        row_dict["source_mode"] = doc.source_mode if doc else None
         row_dict["page_no"] = page.page_no if page else 1
+        row_dict["page_w"] = page.width_px if page else None
+        row_dict["page_h"] = page.height_px if page else None
+        row_dict["block_text"] = block.text if block else None
         row_dict["bbox"] = (
             {"xmin": block.xmin, "ymin": block.ymin, "xmax": block.xmax, "ymax": block.ymax}
             if block
@@ -50,21 +54,34 @@ def _load_patient_bundle(patient_id: int, session: Session) -> dict[str, Any]:
         )
         return row_dict
 
-    observations = [
-        attach_source(o.model_dump(), o.document_id, o.page_id, o.block_id)
-        for o in obs_list
-    ]
-    medications = [
-        attach_source(m.model_dump(), m.document_id, m.page_id, m.block_id)
-        for m in med_list
-    ]
+    observations = [attach_source(o.model_dump(), o.document_id, o.page_id, o.block_id) for o in obs_list]
+    medications = [attach_source(m.model_dump(), m.document_id, m.page_id, m.block_id) for m in med_list]
     answers = [a.model_dump() for a in ans_list]
+
+    documents = []
+    for d in sorted(docs.values(), key=lambda d: (d.doc_date or date.min, d.id)):
+        documents.append(
+            {
+                "id": d.id,
+                "kind": d.kind,
+                "source_org": d.source_org,
+                "doc_date": d.doc_date,
+                "status": d.status,
+                "error": d.error,
+                "page_count": d.page_count,
+                "source_mode": d.source_mode,
+                "original_filename": d.original_filename,
+                "n_observations": sum(1 for o in obs_list if o.document_id == d.id),
+                "n_medications": sum(1 for m in med_list if m.document_id == d.id),
+            }
+        )
 
     return {
         "patient": patient.model_dump(),
         "observations": observations,
         "medications": medications,
         "answers": answers,
+        "documents": documents,
         "doctor_note": note.text if note else "",
     }
 
@@ -76,9 +93,9 @@ def get_timeline(patient_id: int, session: Session = Depends(get_session)) -> di
     for obs in bundle["observations"]:
         grouped.setdefault(obs["test"], []).append(obs)
     for test_name in grouped:
-        grouped[test_name].sort(key=lambda o: o.get("obs_date") or date.min)
+        grouped[test_name].sort(key=lambda o: (o.get("obs_date") or date.min, o["id"]))
 
-    meds = sorted(bundle["medications"], key=lambda m: m.get("rx_date") or date.min)
+    meds = sorted(bundle["medications"], key=lambda m: (m.get("rx_date") or date.min, m["id"]))
     return {"observations_by_test": grouped, "medications": meds}
 
 
@@ -99,6 +116,7 @@ def get_summary(patient_id: int, session: Session = Depends(get_session)) -> dic
         answers=bundle["answers"],
         doctor_note=bundle["doctor_note"],
         today=settings.today,
+        documents=bundle["documents"],
     )
 
 
@@ -112,9 +130,10 @@ def patch_observation(
     if not obs:
         raise HTTPException(status_code=404, detail="Observation not found")
     if payload.edited_value is not None:
-        obs.edited_value = payload.edited_value
+        obs.edited_value = payload.edited_value.strip() or None
     if payload.verified_by_clinician is not None:
         obs.verified_by_clinician = payload.verified_by_clinician
+    session.add(obs)
     session.commit()
     session.refresh(obs)
     return obs
@@ -130,9 +149,10 @@ def patch_medication(
     if not med:
         raise HTTPException(status_code=404, detail="Medication not found")
     if payload.edited_value is not None:
-        med.edited_value = payload.edited_value
+        med.edited_value = payload.edited_value.strip() or None
     if payload.verified_by_clinician is not None:
         med.verified_by_clinician = payload.verified_by_clinician
+    session.add(med)
     session.commit()
     session.refresh(med)
     return med
@@ -153,7 +173,7 @@ def put_doctor_note(
         note.updated_at = datetime.now(timezone.utc)
     else:
         note = DoctorNote(patient_id=patient_id, text=payload.text)
-        session.add(note)
+    session.add(note)
     session.commit()
     session.refresh(note)
     return note

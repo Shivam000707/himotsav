@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-d837910a-83a3-4fba-b1bb-fd8ff14f615b",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "[\n  {\"text\": \"Valley Diagnostics\", \"bbox\": [45, 25, 342, 55]},\n  {\"text\": \"PATHOLOGY LAB REPORT | Synthetic Demo Data\", \"bbox\": [45, 60, 530, 80]},\n  {\"text\": \"Patient: Ramesh Kumar | Age/Sex: 58 / M\", \"bbox\": [45, 125, 540, 150]},\n  {\"text\": \"Date: 09 Sep 2023\", \"bbox\": [705, 125, 920, 150]},\n  {\"text\": \"Test Result Unit\", \"bbox\": [55, 195, 810, 225]},\n  {\"text\": \"HbA1c 7.6 %\", \"bbox\": [55, 235, 790, 265]},\n  {\"text\": \"Fasting glucose 8.9 mmol/L\", \"bbox\": [55, 285, 840, 315]},\n  {\"text\": \"MediKiosk-DM Synthetic Test Document - Not a Real Patient Record\", \"bbox\": [45, 950, 680, 975]}\n]",
+        "refusal": null,
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "created": 1795788467,
+  "model": "private/nvidia/nemotron-3.5-super-120b-a12b",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 2017,
+    "completion_tokens": 313,
+    "total_tokens": 2330,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

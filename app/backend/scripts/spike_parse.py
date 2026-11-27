@@ -1,105 +1,100 @@
-"""Phase 0 API spike: send one test image to Nemotron Parse and one prompt to the text LLM.
+"""Check the NVIDIA setup before anything else: run this first after adding your API key.
 
-Saves raw responses to app/backend/tests/fixtures/ so offline tests and schema checks
-can inspect the exact NVIDIA response shape.
+    cd app/backend
+    .venv/Scripts/python scripts/spike_parse.py
+
+It runs the real pipeline steps on synthetic report p3 (Valley Diagnostics: HbA1c 7.6 %, fasting glucose
+8.9 mmol/L) with the models in .env, bypassing the cache, so every run makes real calls (about 3 requests).
+If a model has been retired (HTTP 410) it lists the models your key can use right now.
 """
 from __future__ import annotations
 
-import base64
-import io
-import json
 import sys
 from pathlib import Path
 
 import httpx
-from PIL import Image, ImageDraw
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
-from config import settings  # noqa: E402
+from config import REPO_ROOT, settings  # noqa: E402
+from services.parse import parse_page_image  # noqa: E402
+from services.structure import structure_from_blocks, structure_from_image_fallback  # noqa: E402
 
-FIXTURES_DIR = BACKEND_DIR / "tests" / "fixtures"
-FIXTURES_DIR.mkdir(parents=True, exist_ok=True)
+TEST_IMAGE = REPO_ROOT / "data" / "synthetic" / "images" / "p3.png"
 
 
-def make_test_image_b64() -> str:
-    img = Image.new("RGB", (800, 400), color=(255, 254, 250))
-    draw = ImageDraw.Draw(img)
-    draw.text((40, 40), "Valley Diagnostics - Lab Report", fill=(31, 41, 51))
-    draw.text((40, 90), "Patient: Ramesh Kumar | Date: 09 Sep 2023", fill=(31, 41, 51))
-    draw.text((40, 160), "HbA1c: 7.6 %", fill=(31, 41, 51))
-    draw.text((40, 210), "Fasting glucose: 8.9 mmol/L", fill=(31, 41, 51))
-
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=85)
-    return base64.b64encode(buf.getvalue()).decode("ascii")
+def hint_for(message: str) -> None:
+    if " 410" in message or "end of life" in message:
+        print("    This model has been retired by NVIDIA. Models your key can use right now:")
+        try:
+            r = httpx.get(
+                f"{settings.nvidia_base_url}/models",
+                headers={"Authorization": f"Bearer {settings.nvidia_api_key}"},
+                timeout=30,
+            )
+            for m in sorted(x["id"] for x in r.json().get("data", [])):
+                print(f"      {m}")
+            print("    Pick a vision-language model for NVIDIA_PARSE_MODEL and NVIDIA_VISION_MODEL, and a text model")
+            print("    for NVIDIA_TEXT_MODEL, in app/backend/.env. Then run this script again.")
+        except Exception as exc:  # noqa: BLE001
+            print(f"    (could not list models: {exc})")
+    elif " 401" in message or " 403" in message:
+        print("    The key was refused. Check NVIDIA_API_KEY in app/backend/.env (it starts with nvapi-).")
+    elif " 404" in message:
+        print("    Model not found for this key. Check the model id in app/backend/.env.")
+    elif " 429" in message:
+        print("    Rate limited (free tier is about 40 requests a minute). Wait a minute and retry.")
 
 
 def main() -> int:
     if not settings.nvidia_key_present:
-        print("ERROR: Set NVIDIA_API_KEY in app/backend/.env before running the spike.")
+        print("ERROR: set NVIDIA_API_KEY in app/backend/.env first (copy .env.example to .env).")
         return 1
+    print(f"Test image: {TEST_IMAGE.name}")
+    ok = True
 
-    headers = {
-        "Authorization": f"Bearer {settings.nvidia_api_key}",
-        "Content-Type": "application/json",
-    }
-    b64 = make_test_image_b64()
-    print(f"Test image base64 size: {len(b64)} chars")
+    print(f"\n--- reading the page: model {settings.nvidia_parse_model}")
+    blocks = []
+    try:
+        blocks = parse_page_image(TEST_IMAGE, use_cache=False)
+        print(f"    {len(blocks)} lines with boxes:")
+        for b in blocks:
+            print(f"      {b.block_id} [{b.xmin:.2f},{b.ymin:.2f},{b.xmax:.2f},{b.ymax:.2f}] {b.text[:70]!r}")
+        if not blocks:
+            ok = False
+            print("    WARNING: the model returned no usable lines. Check the model id and try again.")
+    except Exception as exc:  # noqa: BLE001
+        ok = False
+        print(f"    FAILED: {exc}")
+        hint_for(str(exc))
 
-    parse_payload = {
-        "model": settings.nvidia_parse_model,
-        "messages": [
-            {
-                "role": "user",
-                "content": f'<img src="data:image/jpeg;base64,{b64}"/>',
-            }
-        ],
-        "tools": [
-            {
-                "type": "function",
-                "function": {"name": "markdown_bbox"},
-            }
-        ],
-        "tool_choice": {"type": "function", "function": {"name": "markdown_bbox"}},
-        "max_tokens": 2048,
-    }
+    if blocks:
+        print(f"\n--- structuring: model {settings.nvidia_text_model}")
+        try:
+            page = structure_from_blocks(blocks, use_cache=False)
+            print(f"    kind={page.kind} org={page.source_org!r} date={page.doc_date!r}")
+            for o in page.observations:
+                print(f"      {o.label}: {o.value} {o.unit} (line {o.block_id}, uncertain={o.uncertain})")
+            if not page.observations:
+                ok = False
+                print("    WARNING: no test values found.")
+        except Exception as exc:  # noqa: BLE001
+            ok = False
+            print(f"    FAILED: {exc}")
+            hint_for(str(exc))
 
-    with httpx.Client(timeout=60.0) as client:
-        r_parse = client.post(
-            f"{settings.nvidia_base_url}/chat/completions",
-            headers=headers,
-            json=parse_payload,
-        )
-        print(f"Parse status: {r_parse.status_code}")
-        parse_json = r_parse.json()
-        (FIXTURES_DIR / "spike_parse_response.json").write_text(
-            json.dumps(parse_json, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+    print(f"\n--- fallback that reads the image directly: model {settings.nvidia_vision_model}")
+    try:
+        page = structure_from_image_fallback(TEST_IMAGE, use_cache=False)
+        print(f"    found {len(page.observations)} test values")
+    except Exception as exc:  # noqa: BLE001
+        print(f"    FAILED: {exc}")
+        hint_for(str(exc))
+        print("    (This is only a fallback; the app still works without it.)")
 
-        llm_payload = {
-            "model": settings.nvidia_text_model,
-            "messages": [
-                {"role": "system", "content": "Return ONLY valid JSON: {\"ok\": true}."},
-                {"role": "user", "content": "Reply with JSON."},
-            ],
-            "temperature": 0,
-            "max_tokens": 128,
-        }
-        r_llm = client.post(
-            f"{settings.nvidia_base_url}/chat/completions",
-            headers=headers,
-            json=llm_payload,
-        )
-        print(f"Text LLM status: {r_llm.status_code}")
-        llm_json = r_llm.json()
-        (FIXTURES_DIR / "spike_llm_response.json").write_text(
-            json.dumps(llm_json, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
-
-    print("Saved fixtures to", FIXTURES_DIR)
-    return 0
+    print("\nRESULT:", "Reading and structuring work. You can run the app." if ok else "Something needs fixing: see the messages above.")
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

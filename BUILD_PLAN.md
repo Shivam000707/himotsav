@@ -32,6 +32,8 @@ Read these before coding:
 5. **Synthetic data only.** No real patient data anywhere.
 6. **The API key stays on the backend.** It goes in `.env`, which is git-ignored, and never reaches the frontend or a commit.
 
+> **Update, 27 Nov 2026 (checked against the live service):** NVIDIA has retired `nvidia/nemotron-parse`, `meta/llama-3.3-70b-instruct` and `meta/llama-3.2-90b-vision-instruct` (HTTP 410). The page reader now uses the vision-language model `nvidia/nemotron-3.5-super-vl-120b-a12b`, which returns each line of text with a box on a 0 to 1000 scale. Structuring uses `nvidia/nemotron-3.5-lightning-30b-a3b`. Both are called with `chat_template_kwargs {"enable_thinking": false}`. Where this plan says "Nemotron Parse" or "Llama", read it as these models. Still no OCR engine.
+
 ## 2. Free services and the NVIDIA API
 
 All AI calls go to NVIDIA's hosted free developer API, at build.nvidia.com, with one key.

@@ -42,23 +42,40 @@ TEST_ALIASES = _load_test_aliases()
 MED_MAP = _load_med_map()
 
 
+def _clean_label(text: str) -> str:
+    text = text.lower().replace("haemoglobin", "hemoglobin").replace("glycosylated", "glycated")
+    text = re.sub(r"[^a-z0-9%/ ]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+ALIAS_TO_CANONICAL: dict[str, str] = {
+    _clean_label(alias): canonical for canonical, aliases in TEST_ALIASES.items() for alias in aliases
+}
+
+
 def canonicalize_test(label: str) -> str:
-    """Map raw lab test label to canonical test id using rapidfuzz >= 90."""
-    cleaned = re.sub(r"\s+", " ", label.strip()).lower()
-    if not cleaned:
+    """Map a printed lab test label to a canonical test id.
+
+    Tries the whole label, then the text outside and inside brackets ("HbA1c (Glycated
+    Hemoglobin)"). Exact alias first, then a whole-string fuzzy ratio >= 90. A substring match
+    is deliberately not used: "Glucose" alone must not become "fasting glucose".
+    """
+    if not label or not label.strip():
         return "other"
+    candidates = [label]
+    outside = re.sub(r"\(.*?\)|\[.*?\]", " ", label)
+    if outside.strip() and outside != label:
+        candidates.append(outside)
+    candidates.extend(re.findall(r"\((.*?)\)", label))
 
-    alias_to_canonical: dict[str, str] = {}
-    for canonical, aliases in TEST_ALIASES.items():
-        for alias in aliases:
-            alias_to_canonical[alias.lower()] = canonical
-
-    if cleaned in alias_to_canonical:
-        return alias_to_canonical[cleaned]
-
-    match = process.extractOne(cleaned, list(alias_to_canonical.keys()), scorer=fuzz.WRatio)
-    if match and match[1] >= 90:
-        return alias_to_canonical[match[0]]
+    cleaned = [c for c in (_clean_label(x) for x in candidates) if c]
+    for c in cleaned:
+        if c in ALIAS_TO_CANONICAL:
+            return ALIAS_TO_CANONICAL[c]
+    for c in cleaned:
+        match = process.extractOne(c, list(ALIAS_TO_CANONICAL.keys()), scorer=fuzz.ratio)
+        if match and match[1] >= 90:
+            return ALIAS_TO_CANONICAL[match[0]]
     return "other"
 
 
@@ -91,8 +108,8 @@ def convert_unit(test: str, value_raw: str, unit_raw: Optional[str]) -> UnitConv
     if not unit_raw or not unit_raw.strip():
         return UnitConversionResult(val, None, None, False, True, "unit not readable")
 
-    u = unit_raw.strip().lower().replace("μ", "µ").replace("u", "µ") if "mol" in unit_raw.lower() else unit_raw.strip().lower()
-    u_clean = unit_raw.strip().lower()
+    # Normalise spelling: Greek mu and micro sign both become "u"; drop spaces.
+    u_clean = unit_raw.strip().lower().replace("μ", "u").replace("µ", "u").replace(" ", "")
 
     if test in {"fasting_glucose", "postprandial_glucose", "random_glucose"}:
         if "mmol" in u_clean:
@@ -109,7 +126,7 @@ def convert_unit(test: str, value_raw: str, unit_raw: Optional[str]) -> UnitConv
             return UnitConversionResult(val, round(val, 1), "%", False, False, None)
 
     elif test == "creatinine":
-        if "mol/l" in u_clean:
+        if "umol/l" in u_clean or "micromol/l" in u_clean:
             std = round(val / 88.4, 2)
             return UnitConversionResult(val, std, "mg/dL", True, False, None)
         if "mg/dl" in u_clean:
@@ -146,10 +163,17 @@ def parse_indian_date(raw_date: Optional[str]) -> tuple[Optional[date], Optional
     """Parse DD/MM/YYYY-first date; note ambiguity when day and month are both <= 12."""
     if not raw_date or not raw_date.strip():
         return None, None
-    text = raw_date.strip()
+    text = re.sub(r"^\s*(date|dated|report date|collected on)\s*[:\-]?\s*", "", raw_date.strip(), flags=re.IGNORECASE)
+    # Require a day, a month and a year: dateutil would otherwise fill gaps with today's date.
+    if len(re.findall(r"\d+", text)) < 2 or not re.search(r"\d{4}|\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2}", text):
+        return None, "date not readable"
     try:
-        dt = date_parser.parse(text, dayfirst=True).date()
-    except (ValueError, TypeError):
+        if re.match(r"^\s*\d{4}[-/.]\d{1,2}[-/.]\d{1,2}", text):
+            # Year first (ISO style, 2026-08-12): the month comes before the day.
+            dt = date_parser.parse(text, yearfirst=True, dayfirst=False).date()
+        else:
+            dt = date_parser.parse(text, dayfirst=True).date()
+    except (ValueError, TypeError, OverflowError):
         return None, "date not readable"
 
     note = None
@@ -163,19 +187,25 @@ def parse_indian_date(raw_date: Optional[str]) -> tuple[Optional[date], Optional
 
 def map_brand_to_generic(name_as_written: str) -> Optional[str]:
     """Strip Tab./Cap. and strengths, then fuzzy match against med_map.csv (>= 88)."""
-    cleaned = name_as_written.strip()
-    cleaned = re.sub(r"^(tab\.?|cap\.?|inj\.?|syp\.?)\s*", "", cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r"\b\d+(?:\.\d+)?\s*(mg|mcg|g|ml|iu|units?)\b", "", cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r"\b\d+\b", "", cleaned)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip().lower()
+    cleaned = name_as_written.strip().lower()
+    cleaned = re.sub(r"^(tab|tablet|cap|capsule|inj|injection|syp|syrup)\b\.?\s*", "", cleaned)
+    cleaned = re.sub(r"\d+(?:\.\d+)?\s*(mg|mcg|g|ml|iu|units?)\b", " ", cleaned)
+    cleaned = re.sub(r"[^a-z ]+", " ", cleaned)  # digits, slashes, dots, question marks
+    cleaned = re.sub(r"\b(mg|mcg|g|ml|iu|units?|tab|tabs|od|bd|tds|sr|xr)\b", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
     if not cleaned:
         return None
 
     brand_to_generic = {row["brand"].lower(): row["generic"] for row in MED_MAP if row["brand"]}
+    generics = {row["generic"].lower(): row["generic"] for row in MED_MAP if row["generic"]}
     if cleaned in brand_to_generic:
         return brand_to_generic[cleaned]
+    if cleaned in generics:  # already written as a generic name, e.g. "Metformin"
+        return generics[cleaned]
 
-    match = process.extractOne(cleaned, list(brand_to_generic.keys()), scorer=fuzz.WRatio)
+    # Whole-string similarity only: "Amaryl M" (glimepiride + metformin) must not become
+    # plain "Amaryl". An unmatched name is shown as written, which is the safe outcome.
+    match = process.extractOne(cleaned, list(brand_to_generic.keys()), scorer=fuzz.ratio)
     if match and match[1] >= 88:
         return brand_to_generic[match[0]]
     return None

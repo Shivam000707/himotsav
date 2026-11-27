@@ -1,0 +1,285 @@
+.home {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 56px 24px 24px;
+}
+
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 72px;
+  align-items: center;
+}
+
+.home h1 {
+  font-size: clamp(34px, 4.6vw, 58px);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.028em;
+  max-width: 17ch;
+}
+
+.home-lede {
+  margin-top: 24px;
+  font-size: 20px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 54ch;
+}
+
+.home-doors {
+  margin-top: 36px;
+  display: grid;
+  gap: 14px;
+  max-width: 520px;
+}
+
+.door {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 22px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  color: var(--ink);
+  text-decoration: none;
+  background: transparent;
+  transition: background-color 0.12s;
+}
+
+.door:hover {
+  background: var(--paper);
+}
+
+.door-title {
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.door-sub {
+  color: var(--ink-2);
+  font-size: 16px;
+}
+
+.door-main {
+  background: var(--board);
+  border-color: var(--board);
+  color: #fff;
+}
+
+.door-main:hover {
+  background: var(--board-deep);
+}
+
+.door-main .door-sub {
+  color: var(--board-tint);
+}
+
+/* ---------- the proof: lab slip to doctor row ---------- */
+.proof {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.proof-paper {
+  background: var(--paper-warm);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-sheet);
+  padding: 22px 24px 26px;
+  transform: rotate(-1.1deg);
+  box-shadow: 0 1px 0 var(--rule-strong), 0 14px 28px -18px rgba(23, 33, 30, 0.45);
+  font-size: 18px;
+}
+
+.proof-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  margin-bottom: 8px;
+  border-bottom: 2px solid #9fb8c9;
+  color: #274a63;
+}
+
+.proof-head span {
+  font-size: 15px;
+}
+
+.proof-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 4px;
+  border-bottom: 1px dashed var(--rule);
+}
+
+.proof-line:first-of-type {
+  color: var(--ink-3);
+  font-size: 15px;
+}
+
+.proof-target {
+  font-weight: 700;
+  font-size: 21px;
+}
+
+.proof-swipe {
+  background: linear-gradient(100deg, transparent 0, var(--mark-soft) 2%, var(--mark) 5%, var(--mark) 94%, var(--mark-soft) 98%, transparent 100%)
+    left center / 0% 100% no-repeat;
+  padding: 0 0.3em;
+  margin: 0 -0.3em;
+  border-radius: 0.3em 0.6em 0.35em 0.55em;
+  animation: swipe 0.9s 0.5s cubic-bezier(0.5, 0.1, 0.2, 1) forwards;
+}
+
+.proof-target .proof-swipe:last-child {
+  animation-delay: 0.9s;
+}
+
+@keyframes swipe {
+  to {
+    background-size: 100% 100%;
+  }
+}
+
+.proof-link {
+  align-self: center;
+  width: 34px;
+  height: 48px;
+  margin: 6px 0 0;
+  color: var(--ink-3);
+}
+
+.proof-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-sheet);
+  padding: 14px 18px;
+}
+
+.proof-name {
+  font-weight: 600;
+}
+
+.proof-mark {
+  font-size: 26px;
+  font-weight: 800;
+  cursor: default;
+}
+
+.proof-meta {
+  color: var(--ink-2);
+  font-size: 15px;
+  margin-left: auto;
+}
+
+.proof figcaption {
+  margin-top: 14px;
+  color: var(--ink-2);
+  font-size: 15px;
+  max-width: 46ch;
+}
+
+/* ---------- lower: demo and system check ---------- */
+.home-lower {
+  margin-top: 88px;
+  padding-top: 40px;
+  border-top: 2px solid var(--ink);
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 72px;
+}
+
+.home-lower h2 {
+  font-size: 26px;
+  margin-bottom: 10px;
+}
+
+.demo-actions {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.demo-alt {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.home-demo .banner {
+  margin-top: 18px;
+}
+
+code {
+  font-family: inherit;
+  font-weight: 700;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0 5px;
+  font-size: 0.92em;
+}
+
+.checklist {
+  list-style: none;
+  padding: 0;
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.checklist li {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.checklist .dot {
+  width: 14px;
+  height: 14px;
+  margin-top: 6px;
+  border-radius: 50%;
+  border: 3px solid var(--ink-3);
+}
+
+.check-ok .dot {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+
+.check-bad .dot {
+  background: var(--stamp);
+  border-color: var(--stamp);
+}
+
+.check-wait .dot,
+.dot-wait {
+  background: var(--paper);
+  border-color: var(--amber);
+}
+
+@media (max-width: 900px) {
+  .home {
+    padding-top: 32px;
+  }
+  .home-hero,
+  .home-lower {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 48px;
+  }
+  .home-lower {
+    margin-top: 56px;
+  }
+}

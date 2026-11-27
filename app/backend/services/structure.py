@@ -4,13 +4,13 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
 from config import settings
-from services.nvidia_client import chat_completion, compress_image_for_api, image_to_data_url
-from services.parse import ParsedBlock
+from services.nvidia_client import chat_completion, compress_image_for_api, file_sha256, image_to_data_url
+from services.parse import NO_THINKING, ParsedBlock, message_text
 
 STRUCTURE_SYSTEM_PROMPT = """You extract data from ONE diabetes lab report or prescription. You receive text blocks, each with an id.
 Return ONLY a JSON object with this shape:
@@ -25,7 +25,18 @@ Rules:
 - Include only these tests if present: HbA1c, fasting / post-meal / random glucose, creatinine, eGFR, urine albumin-creatinine ratio, total cholesterol, LDL, HDL, triglycerides. Include every medicine on a prescription."""
 
 
-class RawObservation(BaseModel):
+class _Lenient(BaseModel):
+    # LLMs sometimes return 7.6 instead of "7.6", or null for a boolean. Accept those forms;
+    # anything structurally wrong still fails validation and triggers the retry.
+    model_config = ConfigDict(coerce_numbers_to_str=True)
+
+    @field_validator("uncertain", mode="before", check_fields=False)
+    @classmethod
+    def _none_is_false(cls, v: Any) -> Any:
+        return False if v is None else v
+
+
+class RawObservation(_Lenient):
     label: str
     value: str
     unit: Optional[str] = None
@@ -34,7 +45,7 @@ class RawObservation(BaseModel):
     note: Optional[str] = None
 
 
-class RawMedication(BaseModel):
+class RawMedication(_Lenient):
     name: str
     strength: Optional[str] = None
     frequency: Optional[str] = None
@@ -43,13 +54,28 @@ class RawMedication(BaseModel):
     note: Optional[str] = None
 
 
-class StructuredPage(BaseModel):
+class StructuredPage(_Lenient):
     kind: Literal["lab", "rx", "unknown"] = "unknown"
     source_org: Optional[str] = None
     doc_date: Optional[str] = None
     doc_date_block: Optional[str] = None
     observations: list[RawObservation] = []
     medications: list[RawMedication] = []
+
+    @field_validator("kind", mode="before")
+    @classmethod
+    def _normalise_kind(cls, v: Any) -> str:
+        text = str(v or "").strip().lower()
+        if text in {"lab", "lab_report", "lab report", "report", "laboratory"}:
+            return "lab"
+        if text in {"rx", "prescription"}:
+            return "rx"
+        return "unknown"
+
+    @field_validator("observations", "medications", mode="before")
+    @classmethod
+    def _none_is_empty(cls, v: Any) -> Any:
+        return [] if v is None else v
 
 
 def _strip_json_fences(text: str) -> str:
@@ -93,9 +119,10 @@ def structure_from_blocks(
             "messages": messages,
             "temperature": 0,
             "max_tokens": 2048,
+            **NO_THINKING,
         }
         resp = chat_completion(payload, use_cache=use_cache, allow_network=allow_network)
-        content = ((resp.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+        content = message_text(resp)
         try:
             raw_json = _strip_json_fences(content)
             return StructuredPage.model_validate_json(raw_json)
@@ -115,25 +142,31 @@ def structure_from_image_fallback(
     compressed, _, _ = compress_image_for_api(image_path)
     data_url = image_to_data_url(compressed)
     prompt = (
-        STRUCTURE_SYSTEM_PROMPT
-        + '\nSince you are reading the image directly, set "block_id": null and "doc_date_block": null.'
+        STRUCTURE_SYSTEM_PROMPT.replace("You receive text blocks, each with an id.", "You receive an image of the page.")
+        + '\nYou are reading the image directly, so set every "block_id" to null and "doc_date_block" to null.'
     )
+    # Instructions and image go in one user message (OpenAI-style image_url part).
     payload = {
         "model": settings.nvidia_vision_model,
         "messages": [
-            {"role": "system", "content": prompt},
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "Extract the lab report or prescription data as JSON."},
+                    {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {"url": data_url}},
                 ],
             },
         ],
         "temperature": 0,
         "max_tokens": 2048,
+        **NO_THINKING,
     }
-    resp = chat_completion(payload, use_cache=use_cache, allow_network=allow_network)
-    content = ((resp.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+    resp = chat_completion(payload, use_cache=use_cache, allow_network=allow_network, image_key=file_sha256(image_path))
+    content = message_text(resp)
     raw_json = _strip_json_fences(content)
-    return StructuredPage.model_validate_json(raw_json)
+    page = StructuredPage.model_validate_json(raw_json)
+    # The fallback has no Parse blocks to point at: never keep a block id the model invented.
+    for item in [*page.observations, *page.medications]:
+        item.block_id = None
+    page.doc_date_block = None
+    return page

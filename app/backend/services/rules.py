@@ -19,6 +19,17 @@ def _load_rules_config() -> dict[str, Any]:
 
 RULES_CONFIG = _load_rules_config()
 
+MISSED_DOSE_LABELS = {
+    "never": "Never",
+    "less_than_weekly": "Less than once a week",
+    "1_2_weekly": "1-2 times a week",
+    "3_plus_weekly": "3 or more times a week",
+}
+
+
+def _med_key(m: dict[str, Any]) -> str:
+    return (m.get("generic_name") or m.get("name_as_written") or "").strip().lower()
+
 
 @dataclass
 class RuleResult:
@@ -130,7 +141,9 @@ def evaluate(patient_data: dict[str, Any], today: date) -> list[RuleResult]:
     if isinstance(missed_val, dict):
         missed_val = missed_val.get("choice")
     if missed_val in missed_flag_vals:
-        ev = (missed_ans.get("raw_text") if missed_ans and missed_ans.get("raw_text") else None) or str(missed_val)
+        label = MISSED_DOSE_LABELS.get(str(missed_val), str(missed_val))
+        raw = missed_ans.get("raw_text") if missed_ans else None
+        ev = f"{label}: \"{raw}\"" if raw else label
         results.append(RuleResult("missed_doses", "Missed doses", "Forgets medicine at least once a week?", "note", ev, ["intake:missed_doses"]))
     else:
         results.append(RuleResult("missed_doses", "Missed doses", "Forgets medicine at least once a week?", "ok", "Never or less than weekly", []))
@@ -184,30 +197,38 @@ def evaluate(patient_data: dict[str, Any], today: date) -> list[RuleResult]:
         ev = f"Last: {latest_lipid['obs_date'].strftime('%d %b %Y')}, {_days_ago_text(latest_lipid['obs_date'], today)}" if latest_lipid else "No lipid test found"
         results.append(RuleResult("lipid_recent", "Cholesterol test up to date", "Lipid profile in the last 12 months?", "missing", ev, [f"obs:{latest_lipid['id']}"] if latest_lipid else []))
 
-    # 8. med_match (prescriptions within last 24 months vs intake medicines)
-    cutoff = today - timedelta(days=rx_med_max_months * 30)
-    intake_generics: set[str] = set()
-    for m in medications:
-        if m.get("source") == "intake":
-            key = (m.get("generic_name") or m.get("name_as_written") or "").strip().lower()
-            if key:
-                intake_generics.add(key)
+    # 8. med_match: recent prescriptions vs medicines the patient named at intake, both ways.
+    cutoff = today - timedelta(days=round(rx_med_max_months * 30.44))
+    intake_meds = [m for m in medications if m.get("source") == "intake" and _med_key(m)]
+    intake_keys = {_med_key(m) for m in intake_meds}
+    all_rx_keys = {_med_key(m) for m in medications if m.get("source") == "rx" and _med_key(m)}
 
-    missing_rx: list[dict[str, Any]] = []
+    # Latest prescription of each medicine within the window that the patient did not mention.
+    missing_rx: dict[str, dict[str, Any]] = {}
     for m in medications:
         if m.get("source") != "rx":
             continue
         rx_d = m.get("rx_date")
         if rx_d is not None and rx_d < cutoff:
             continue
-        gen = (m.get("generic_name") or m.get("name_as_written") or "").strip().lower()
-        if gen and gen not in intake_generics:
-            missing_rx.append(m)
+        key = _med_key(m)
+        if not key or key in intake_keys:
+            continue
+        prev = missing_rx.get(key)
+        if prev is None or (rx_d or date.min) > (prev.get("rx_date") or date.min):
+            missing_rx[key] = m
 
-    if missing_rx:
-        names = ", ".join(f"{m['name_as_written']}" for m in missing_rx)
-        refs = [f"med:{m['id']}" for m in missing_rx]
-        results.append(RuleResult("med_match", "Medicine match", "Is every prescribed medicine mentioned by the patient?", "check", f"{names} not mentioned today", refs))
+    not_on_rx = [m for m in intake_meds if _med_key(m) not in all_rx_keys]
+
+    if missing_rx or not_on_rx:
+        parts = []
+        for m in missing_rx.values():
+            when = f" ({m['rx_date'].strftime('%b %Y')})" if m.get("rx_date") else ""
+            parts.append(f"{m['name_as_written']}{when} not mentioned today")
+        for m in not_on_rx:
+            parts.append(f"{m['name_as_written']} named by the patient but not found on any prescription")
+        refs = [f"med:{m['id']}" for m in missing_rx.values()] + [f"med:{m['id']}" for m in not_on_rx]
+        results.append(RuleResult("med_match", "Medicine match", "Is every prescribed medicine mentioned by the patient?", "check", "; ".join(parts), refs))
     else:
         results.append(RuleResult("med_match", "Medicine match", "Is every prescribed medicine mentioned by the patient?", "ok", "All recent prescribed medicines matched", []))
 

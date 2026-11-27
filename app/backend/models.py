@@ -29,6 +29,10 @@ class Document(SQLModel, table=True):
     page_count: int = 1
     status: str = "pending"  # pending | done | failed
     error: Optional[str] = None
+    # "ai": values were read by the NVIDIA pipeline. "scripted": the offline demo backup,
+    # where values come from the synthetic answer key and no AI was involved.
+    source_mode: str = "ai"
+    original_filename: Optional[str] = None
     created_at: datetime = Field(default_factory=utc_now)
 
 

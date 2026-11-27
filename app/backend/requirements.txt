@@ -11,3 +11,4 @@ pyyaml>=6.0.2
 python-dotenv>=1.0.1
 python-multipart>=0.0.12
 pytest>=8.3.0
+nvidia-riva-client>=2.15.0

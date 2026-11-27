@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-8dd686a6-bd99-4adb-adb9-48c103dfecba",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "{\n  \"kind\": \"lab\",\n  \"source_org\": \"Sunrise Pathology\",\n  \"doc_date\": \"18 Jun 2024\",\n  \"doc_date_block\": \"b3\",\n  \"observations\": [\n    {\n      \"label\": \"HbA1c\",\n      \"value\": \"8.3\",\n      \"unit\": \"%\",\n      \"block_id\": \"b5\",\n      \"uncertain\": false,\n      \"note\": null\n    },\n    {\n      \"label\": \"Creatinine\",\n      \"value\": \"1.1\",\n      \"unit\": \"mg/dL\",\n      \"block_id\": \"b6\",\n      \"uncertain\": false,\n      \"note\": null\n    },\n    {\n      \"label\": \"LDL cholesterol\",\n      \"value\": \"128\",\n      \"unit\": \"mg/dL\",\n      \"block_id\": \"b7\",\n      \"uncertain\": false,\n      \"note\": null\n    }\n  ],\n  \"medications\": []\n}",
+        "refusal": null,
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "created": 1795788481,
+  "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 563,
+    "completion_tokens": 220,
+    "total_tokens": 783,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

@@ -50,3 +50,45 @@ def test_brand_to_generic():
     assert map_brand_to_generic("Tab. Glycomet 500") == "metformin"
     assert map_brand_to_generic("Tab. Amaryl 1 mg") == "glimepiride"
     assert map_brand_to_generic("Galvus Met 50/500") == "vildagliptin + metformin"
+
+
+def test_canonicalize_brackets_and_no_substring_matches():
+    assert canonicalize_test("HbA1c (Glycated Haemoglobin)") == "hba1c"
+    assert canonicalize_test("Glycosylated Haemoglobin") == "hba1c"
+    assert canonicalize_test("Serum Creatinine") == "creatinine"
+    assert canonicalize_test("LDL Cholesterol") == "ldl"
+    assert canonicalize_test("HDL Cholesterol") == "hdl"
+    # Too vague to know which glucose test it is: keep as "other" rather than guess.
+    assert canonicalize_test("Glucose") == "other"
+    assert canonicalize_test("") == "other"
+
+
+def test_more_unit_conversions():
+    assert convert_unit("ldl", "3.3", "mmol/L").value_std == 128.0
+    assert convert_unit("triglycerides", "1.7", "mmol/L").value_std == 151.0
+    assert convert_unit("uacr", "2.7", "mg/mmol").value_std == 24.0
+    assert convert_unit("creatinine", "97", "μmol/L").value_std == 1.1  # Greek mu
+    assert convert_unit("creatinine", "1.1", "mg/dL").converted is False
+    assert convert_unit("fasting_glucose", "142", "mg/dl").value_std == 142.0
+    odd = convert_unit("fasting_glucose", "142", "furlongs")
+    assert odd.uncertain is True and odd.value_std is None
+    nonnum = convert_unit("hba1c", "seven", "%")
+    assert nonnum.uncertain is True and nonnum.value_num is None
+
+
+def test_dates_need_day_month_and_year():
+    assert parse_indian_date("Date: 09 Sep 2023") == (date(2023, 9, 9), None)
+    assert parse_indian_date("2026-08-12") == (date(2026, 8, 12), None)
+    assert parse_indian_date("14/02/23")[0] == date(2023, 2, 14)
+    assert parse_indian_date("Sep 2023") == (None, "date not readable")
+    assert parse_indian_date("not a date") == (None, "date not readable")
+    assert parse_indian_date(None) == (None, None)
+
+
+def test_brand_mapping_is_strict():
+    assert map_brand_to_generic("Glycomet GP 1") == "glimepiride + metformin"
+    assert map_brand_to_generic("Tab. Amaryl ? mg") == "glimepiride"
+    assert map_brand_to_generic("Glycomett 500") == "metformin"  # small spelling slip
+    assert map_brand_to_generic("Metformin 500 mg") == "metformin"
+    assert map_brand_to_generic("Amaryl M 1") is None  # different product: shown as written
+    assert map_brand_to_generic("Tab. Unknownex") is None

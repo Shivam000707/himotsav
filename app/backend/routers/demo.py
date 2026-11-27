@@ -1,54 +1,67 @@
-"""Demo seeding route: creates Ramesh ji with his 7 synthetic reports and intake answers."""
+"""Demo seeding route: creates "Ramesh ji" with his 7 synthetic reports and intake answers.
+
+Modes:
+- live:     every report is read by the real NVIDIA pipeline. Responses are cached on disk,
+            so running it again later is instant and needs no network.
+- cached:   same pipeline, but only from the disk cache (no network). Fails clearly for any
+            report that has not been read in live mode before.
+- scripted: offline backup for when there is no API key or no internet. Values come from the
+            synthetic answer key (data/synthetic/ramesh.json), NOT from AI. Every document is
+            marked source_mode="scripted" and the dashboard says so.
+"""
 from __future__ import annotations
 
 import json
+import logging
 import shutil
-from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from PIL import Image
-from sqlmodel import Session
+from sqlmodel import Session, select
 
-from config import REPO_ROOT, UPLOADS_DIR
+from config import REPO_ROOT, UPLOADS_DIR, settings
 from db import get_session
 from models import Block, Document, IntakeAnswer, Medication, Observation, Page, Patient
-from services.extraction import extract_page_items
+from services.ingest import ingest_page
 from services.normalize import canonicalize_test, convert_unit, map_brand_to_generic, parse_indian_date
 
 router = APIRouter(prefix="/api", tags=["demo"])
+log = logging.getLogger("medikiosk.demo")
 
 SYNTH_DIR = REPO_ROOT / "data" / "synthetic"
+DEMO_PATIENT_NAME = "Ramesh Kumar"  # display_name in data/synthetic/ramesh.json
+
+# Intake answers matching the simulation's QA script (simulation/medikiosk-simulation.html).
+DEMO_INTAKE = [
+    ("diabetes_years", 10, "करीब दस साल से।"),
+    ("current_meds", [{"name": "Glycomet", "frequency": "1-0-1"}], "ग्लाइकोमेट, सुबह और रात को एक-एक गोली।"),
+    ("missed_doses", "1_2_weekly", "हाँ, हफ़्ते में दो-तीन बार रात की गोली भूल जाता हूँ।"),
+    ("shaky_sweaty", "yes", "हाँ, पिछले महीने दो-तीन बार शाम को ऐसा हुआ।"),
+    ("urgent_symptoms", ["none"], None),
+    ("feet", ["tingling"], "पैरों में कभी-कभी झुनझुनी होती है।"),
+    ("eyes", "fine", None),
+    ("anything_else", "", "नहीं, बस इतना ही।"),
+]
+
+# Text positions used by data/synthetic/generate.py (page is 1240 x 1754 px). Used only in
+# scripted mode, to draw the source box over the right line of the synthetic report.
+_PAGE_W, _PAGE_H = 1240.0, 1754.0
+_FIRST_ROW_Y = 420
+_ROW_STEP = {"lab": 85, "rx": 95}
+_ROW_X = {"lab": (70, 1110), "rx": (70, 660)}
 
 
-@router.post("/demo/seed")
-def seed_demo(
-    mode: str = Query(default="cached", pattern="^(cached|live)$"),
-    session: Session = Depends(get_session),
-) -> dict:
-    ramesh_data = json.loads((SYNTH_DIR / "ramesh.json").read_text(encoding="utf-8"))
-    p_info = ramesh_data["patient"]
+def _scripted_bbox(kind: str, idx: int) -> tuple[float, float, float, float]:
+    y = _FIRST_ROW_Y + idx * _ROW_STEP[kind]
+    x0, x1 = _ROW_X[kind]
+    return x0 / _PAGE_W, (y - 12) / _PAGE_H, x1 / _PAGE_W, (y + 52) / _PAGE_H
 
-    patient = Patient(
-        display_name=p_info["display_name"],
-        age=p_info["age"],
-        language=p_info["language"],
-    )
+
+def _create_patient_with_intake(session: Session, p_info: dict) -> Patient:
+    patient = Patient(display_name=p_info["display_name"], age=p_info["age"], language=p_info["language"])
     session.add(patient)
-    session.commit()
-    session.refresh(patient)
-
-    # Seed intake answers matching simulation QA
-    intake_rows = [
-        ("diabetes_years", 10, "करीब दस साल से।"),
-        ("current_meds", [{"name": "Glycomet", "frequency": "1-0-1"}], "ग्लाइकोमेट, सुबह और रात को एक-एक गोली।"),
-        ("missed_doses", "1_2_weekly", "हाँ, हफ़्ते में दो-तीन बार रात की गोली भूल जाता हूँ।"),
-        ("shaky_sweaty", {"choice": "yes", "details": "2-3 times last month, in the evening"}, "हाँ, पिछले महीने दो-तीन बार शाम को ऐसा हुआ।"),
-        ("urgent_symptoms", ["none"], None),
-        ("feet", ["tingling"], "पैरों में कभी-कभी झुनझुनी होती है।"),
-        ("eyes", "fine", "आँखें ठीक हैं।"),
-        ("anything_else", "नहीं, बस इतना ही।", "नहीं, बस इतना ही।"),
-    ]
-    for qid, val, raw_txt in intake_rows:
+    session.flush()
+    for qid, val, raw_txt in DEMO_INTAKE:
         session.add(
             IntakeAnswer(
                 patient_id=patient.id,
@@ -68,163 +81,173 @@ def seed_demo(
             frequency="1-0-1",
         )
     )
-
-    for paper in ramesh_data["papers"]:
-        img_src = SYNTH_DIR / "images" / f"{paper['id']}.png"
-        doc_dir = UPLOADS_DIR / str(patient.id) / paper["id"]
-        doc_dir.mkdir(parents=True, exist_ok=True)
-        dest_img = doc_dir / "page_1.png"
-        shutil.copyfile(img_src, dest_img)
-
-        with Image.open(dest_img) as im:
-            w_px, h_px = im.size
-
-        doc_date, date_note = parse_indian_date(paper["date"])
-        doc = Document(
-            patient_id=patient.id,
-            kind=paper["kind"],
-            source_org=paper["org"],
-            doc_date=doc_date,
-            file_path=str(dest_img),
-            page_count=1,
-            status="done",
-        )
-        session.add(doc)
-        session.commit()
-        session.refresh(doc)
-
-        page = Page(
-            document_id=doc.id,
-            page_no=1,
-            image_path=str(dest_img),
-            width_px=w_px,
-            height_px=h_px,
-        )
-        session.add(page)
-        session.commit()
-        session.refresh(page)
-
-        if mode == "live":
-            blocks, _, obs_rows, med_rows = extract_page_items(dest_img, use_cache=True, allow_network=True)
-            block_map: dict[str, int] = {}
-            for b in blocks:
-                db_b = Block(
-                    page_id=page.id,
-                    block_key=b.block_id,
-                    text=b.text,
-                    block_type=b.block_type,
-                    xmin=b.xmin,
-                    ymin=b.ymin,
-                    xmax=b.xmax,
-                    ymax=b.ymax,
-                )
-                session.add(db_b)
-                session.commit()
-                session.refresh(db_b)
-                block_map[b.block_id] = db_b.id
-
-            for o in obs_rows:
-                session.add(
-                    Observation(
-                        patient_id=patient.id,
-                        document_id=doc.id,
-                        page_id=page.id,
-                        block_id=block_map.get(o["block_id"]) if o["block_id"] else None,
-                        test=o["test"],
-                        label_as_written=o["label_as_written"],
-                        value_raw=o["value_raw"],
-                        unit_raw=o["unit_raw"],
-                        value_num=o["value_num"],
-                        unit_std=o["unit_std"],
-                        value_std=o["value_std"],
-                        converted=o["converted"],
-                        obs_date=o["obs_date"] or doc_date,
-                        uncertain=o["uncertain"],
-                        unverified=o["unverified"],
-                        note=o["note"],
-                    )
-                )
-            for m in med_rows:
-                session.add(
-                    Medication(
-                        patient_id=patient.id,
-                        source="rx",
-                        document_id=doc.id,
-                        page_id=page.id,
-                        block_id=block_map.get(m["block_id"]) if m["block_id"] else None,
-                        name_as_written=m["name_as_written"],
-                        generic_name=m["generic_name"],
-                        strength=m["strength"],
-                        frequency=m["frequency"],
-                        rx_date=m["rx_date"] or doc_date,
-                        uncertain=m["uncertain"],
-                        unverified=m["unverified"],
-                        note=m["note"],
-                    )
-                )
-        else:
-            # Offline cached seed using deterministic coordinates from generate.py layout
-            y_start = 420 if paper["kind"] == "rx" else 420
-            row_step = 95 if paper["kind"] == "rx" else 85
-            for idx, row in enumerate(paper["rows"]):
-                ymin = (y_start + idx * row_step) / 1754.0
-                ymax = (y_start + idx * row_step + 55) / 1754.0
-                db_b = Block(
-                    page_id=page.id,
-                    block_key=f"b{idx}",
-                    text=f"{row['label']} {row['value']} {row.get('unit', '')}".strip(),
-                    block_type="Text",
-                    xmin=0.05,
-                    ymin=ymin,
-                    xmax=0.90,
-                    ymax=ymax,
-                )
-                session.add(db_b)
-                session.commit()
-                session.refresh(db_b)
-
-                if paper["kind"] == "lab":
-                    test_name = canonicalize_test(row["label"])
-                    conv = convert_unit(test_name, row["value"], row.get("unit"))
-                    session.add(
-                        Observation(
-                            patient_id=patient.id,
-                            document_id=doc.id,
-                            page_id=page.id,
-                            block_id=db_b.id,
-                            test=test_name,
-                            label_as_written=row["label"],
-                            value_raw=row["value"],
-                            unit_raw=row.get("unit"),
-                            value_num=conv.value_num,
-                            unit_std=conv.unit_std,
-                            value_std=conv.value_std,
-                            converted=conv.converted,
-                            obs_date=doc_date,
-                            uncertain=bool(row.get("uncertain") or conv.uncertain),
-                            unverified=False,
-                            note=conv.note or date_note,
-                        )
-                    )
-                else:
-                    med_name = row.get("med_name") or row["label"]
-                    session.add(
-                        Medication(
-                            patient_id=patient.id,
-                            source="rx",
-                            document_id=doc.id,
-                            page_id=page.id,
-                            block_id=db_b.id,
-                            name_as_written=med_name,
-                            generic_name=map_brand_to_generic(med_name),
-                            strength=row.get("strength"),
-                            frequency=row.get("frequency") or row.get("value"),
-                            rx_date=doc_date,
-                            uncertain=bool(row.get("uncertain", False)),
-                            unverified=False,
-                            note="Smudged dose: 1 mg or 2 mg?" if row.get("uncertain") else date_note,
-                        )
-                    )
-
     session.commit()
-    return {"patient_id": patient.id, "display_name": patient.display_name, "mode": mode}
+    session.refresh(patient)
+    return patient
+
+
+def _add_document_with_page(session: Session, patient: Patient, paper: dict, source_mode: str) -> tuple[Document, Page]:
+    img_src = SYNTH_DIR / "images" / f"{paper['id']}.png"
+    if not img_src.exists():
+        raise HTTPException(status_code=500, detail=f"Missing synthetic image {img_src}. Run data/synthetic/generate.py.")
+    doc_dir = UPLOADS_DIR / str(patient.id) / paper["id"]
+    doc_dir.mkdir(parents=True, exist_ok=True)
+    dest_img = doc_dir / "page_1.png"
+    shutil.copyfile(img_src, dest_img)
+    with Image.open(dest_img) as im:
+        w_px, h_px = im.size
+
+    doc = Document(
+        patient_id=patient.id,
+        file_path=str(dest_img),
+        page_count=1,
+        status="pending",
+        source_mode=source_mode,
+        original_filename=f"{paper['id']}.png",
+    )
+    session.add(doc)
+    session.flush()
+    page = Page(document_id=doc.id, page_no=1, image_path=str(dest_img), width_px=w_px, height_px=h_px)
+    session.add(page)
+    session.commit()
+    session.refresh(doc)
+    session.refresh(page)
+    return doc, page
+
+
+def _seed_scripted_values(session: Session, patient: Patient, doc: Document, page: Page, paper: dict) -> None:
+    doc_date, date_note = parse_indian_date(paper["date"])
+    doc.kind = paper["kind"]
+    doc.source_org = paper["org"]
+    doc.doc_date = doc_date
+    for idx, row in enumerate(paper["rows"]):
+        xmin, ymin, xmax, ymax = _scripted_bbox(paper["kind"], idx)
+        if row.get("smudge_strength"):
+            # The dose is unreadable on the printed page, so the "text found there" must not show it.
+            printed = f"{row.get('med_name') or row['label']} ? mg {row['value']}"
+        else:
+            printed = f"{row['label']} {row['value']} {row.get('unit', '')}".strip()
+        block = Block(
+            page_id=page.id,
+            block_key=f"b{idx}",
+            text=printed,
+            block_type="Text",
+            xmin=xmin,
+            ymin=ymin,
+            xmax=xmax,
+            ymax=ymax,
+        )
+        session.add(block)
+        session.flush()
+        if paper["kind"] == "lab":
+            test_name = canonicalize_test(row["label"])
+            conv = convert_unit(test_name, row["value"], row.get("unit"))
+            session.add(
+                Observation(
+                    patient_id=patient.id,
+                    document_id=doc.id,
+                    page_id=page.id,
+                    block_id=block.id,
+                    test=test_name,
+                    label_as_written=row["label"],
+                    value_raw=row["value"],
+                    unit_raw=row.get("unit"),
+                    value_num=conv.value_num,
+                    unit_std=conv.unit_std,
+                    value_std=conv.value_std,
+                    converted=conv.converted,
+                    obs_date=doc_date,
+                    uncertain=bool(row.get("uncertain") or conv.uncertain),
+                    unverified=False,
+                    note=conv.note or date_note,
+                )
+            )
+        else:
+            med_name = row.get("med_name") or row["label"]
+            uncertain = bool(row.get("uncertain", False))
+            session.add(
+                Medication(
+                    patient_id=patient.id,
+                    source="rx",
+                    document_id=doc.id,
+                    page_id=page.id,
+                    block_id=block.id,
+                    name_as_written=med_name,
+                    generic_name=map_brand_to_generic(med_name),
+                    # The smudged dose is not readable on the paper, so it is not stated here either.
+                    strength="? mg" if row.get("smudge_strength") else row.get("strength"),
+                    frequency=row.get("frequency") or row.get("value"),
+                    rx_date=doc_date,
+                    uncertain=uncertain,
+                    unverified=False,
+                    note="Dose smudged on the paper: looks like 1 mg or 2 mg" if uncertain else date_note,
+                )
+            )
+    doc.status = "done"
+    session.add(doc)
+    session.commit()
+
+
+def seed_demo_patient(session: Session, mode: str) -> dict:
+    """Create Ramesh ji with his 7 synthetic papers. Used by the route and by the startup auto-seed."""
+    ramesh_data = json.loads((SYNTH_DIR / "ramesh.json").read_text(encoding="utf-8"))
+    patient = _create_patient_with_intake(session, ramesh_data["patient"])
+    source_mode = "scripted" if mode == "scripted" else "ai"
+
+    failed: list[dict[str, str]] = []
+    for paper in ramesh_data["papers"]:
+        doc, page = _add_document_with_page(session, patient, paper, source_mode)
+        if mode == "scripted":
+            _seed_scripted_values(session, patient, doc, page, paper)
+            continue
+        try:
+            ingest_page(session, patient_id=patient.id, doc=doc, page=page, use_cache=True, allow_network=(mode == "live"))
+            doc.status = "done"
+            session.add(doc)
+            session.commit()
+        except Exception as exc:
+            log.exception("Demo extraction failed for %s", paper["id"])
+            session.rollback()
+            doc = session.get(Document, doc.id)
+            doc.status = "failed"
+            doc.error = str(exc)[:1000]
+            session.add(doc)
+            session.commit()
+            failed.append({"paper": paper["id"], "error": str(exc)[:300]})
+
+    return {
+        "patient_id": patient.id,
+        "display_name": patient.display_name,
+        "mode": mode,
+        "documents_total": len(ramesh_data["papers"]),
+        "documents_failed": failed,
+    }
+
+
+@router.post("/demo/seed")
+def seed_demo(
+    mode: str = Query(default="live", pattern="^(live|cached|scripted)$"),
+    session: Session = Depends(get_session),
+) -> dict:
+    if mode == "live" and settings.public_demo:
+        raise HTTPException(
+            status_code=403,
+            detail="Live reading is switched off on the public demo. Use the saved AI replies instead.",
+        )
+    if mode == "live" and not settings.nvidia_key_present:
+        raise HTTPException(
+            status_code=400,
+            detail="NVIDIA_API_KEY is not set in app/backend/.env. Add it and restart the backend, or use the offline scripted demo.",
+        )
+    if settings.public_demo:
+        # Anyone can press the button: hand back the existing demo patient instead of adding a copy each time.
+        existing = session.exec(select(Patient).where(Patient.display_name == DEMO_PATIENT_NAME)).first()
+        if existing is not None:
+            return {
+                "patient_id": existing.id,
+                "display_name": existing.display_name,
+                "mode": mode,
+                "documents_total": len(session.exec(select(Document).where(Document.patient_id == existing.id)).all()),
+                "documents_failed": [],
+            }
+    return seed_demo_patient(session, mode)

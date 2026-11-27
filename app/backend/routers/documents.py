@@ -1,41 +1,54 @@
 """Document upload, extraction, and page image serving routes."""
 from __future__ import annotations
 
-import shutil
+import logging
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+import pypdfium2 as pdfium
+from PIL import UnidentifiedImageError
 from sqlmodel import Session, select
 
-from config import UPLOADS_DIR
+from config import UPLOADS_DIR, settings
 from db import get_session
-from models import Block, Document, Medication, Observation, Page, Patient
-from services.extraction import extract_page_items, prepare_document_pages
-from services.normalize import parse_indian_date
+from models import Document, Page, Patient
+from services.extraction import TooManyPagesError, prepare_document_pages
+from services.ingest import ingest_page
 
 router = APIRouter(prefix="/api", tags=["documents"])
+log = logging.getLogger("medikiosk.documents")
 
 ALLOWED_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".pdf"}
 MAX_BYTES = 10 * 1024 * 1024
+MAX_PAGES = 5
 
 
+# Declared with `def`, not `async def`: extraction makes slow, blocking calls to NVIDIA, and
+# FastAPI runs plain `def` routes in a worker thread so the rest of the app stays responsive.
 @router.post("/patients/{patient_id}/documents")
-async def upload_document(
+def upload_document(
     patient_id: int,
     file: UploadFile = File(...),
     session: Session = Depends(get_session),
 ) -> dict:
+    if settings.public_demo:
+        raise HTTPException(
+            status_code=403,
+            detail="Uploads are switched off on the public demo. Run the app on your own machine to read new papers.",
+        )
     patient = session.get(Patient, patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
     ext = Path(file.filename or "upload.png").suffix.lower()
     if ext not in ALLOWED_EXTS:
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext or 'none'}. Use JPG, PNG, WebP or PDF.")
 
-    content = await file.read()
+    content = file.file.read(MAX_BYTES + 1)
+    if not content:
+        raise HTTPException(status_code=400, detail="The file is empty")
     if len(content) > MAX_BYTES:
         raise HTTPException(status_code=400, detail="File exceeds 10 MB limit")
 
@@ -44,112 +57,57 @@ async def upload_document(
     raw_path = doc_folder / f"original{ext}"
     raw_path.write_bytes(content)
 
+    try:
+        pages_meta = prepare_document_pages(raw_path, doc_folder / "pages", max_pages=MAX_PAGES)
+    except TooManyPagesError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except (UnidentifiedImageError, OSError, ValueError, pdfium.PdfiumError) as exc:
+        raise HTTPException(status_code=400, detail=f"Could not open the file as an image or PDF: {exc}") from exc
+    if not pages_meta:
+        raise HTTPException(status_code=400, detail="The PDF has no pages")
+
     doc = Document(
         patient_id=patient_id,
         file_path=str(raw_path),
+        page_count=len(pages_meta),
         status="pending",
+        source_mode="ai",
+        original_filename=(file.filename or "")[:200] or None,
     )
     session.add(doc)
+    session.flush()
+    pages: list[Page] = []
+    for page_no, page_path, w_px, h_px in pages_meta:
+        page = Page(document_id=doc.id, page_no=page_no, image_path=str(page_path), width_px=w_px, height_px=h_px)
+        session.add(page)
+        pages.append(page)
+    # Commit the document and its page images first, so a failed read can still be shown to staff.
     session.commit()
-    session.refresh(doc)
 
-    created_obs: list[Observation] = []
-    created_meds: list[Medication] = []
-
+    created_obs = []
+    created_meds = []
     try:
-        pages_meta = prepare_document_pages(raw_path, doc_folder / "pages")
-        doc.page_count = len(pages_meta)
-
-        for page_no, page_path, w_px, h_px in pages_meta:
-            page = Page(
-                document_id=doc.id,
-                page_no=page_no,
-                image_path=str(page_path),
-                width_px=w_px,
-                height_px=h_px,
-            )
-            session.add(page)
-            session.commit()
-            session.refresh(page)
-
-            blocks, structured, obs_rows, med_rows = extract_page_items(page_path)
-
-            if page_no == 1:
-                doc.kind = structured.kind
-                doc.source_org = structured.source_org
-                parsed_doc_date, _ = parse_indian_date(structured.doc_date)
-                doc.doc_date = parsed_doc_date
-
-            block_key_to_id: dict[str, int] = {}
-            for b in blocks:
-                db_block = Block(
-                    page_id=page.id,
-                    block_key=b.block_id,
-                    text=b.text,
-                    block_type=b.block_type,
-                    xmin=b.xmin,
-                    ymin=b.ymin,
-                    xmax=b.xmax,
-                    ymax=b.ymax,
-                )
-                session.add(db_block)
-                session.commit()
-                session.refresh(db_block)
-                block_key_to_id[b.block_id] = db_block.id
-
-            for o in obs_rows:
-                db_obs = Observation(
-                    patient_id=patient_id,
-                    document_id=doc.id,
-                    page_id=page.id,
-                    block_id=block_key_to_id.get(o["block_id"]) if o["block_id"] else None,
-                    test=o["test"],
-                    label_as_written=o["label_as_written"],
-                    value_raw=o["value_raw"],
-                    unit_raw=o["unit_raw"],
-                    value_num=o["value_num"],
-                    unit_std=o["unit_std"],
-                    value_std=o["value_std"],
-                    converted=o["converted"],
-                    obs_date=o["obs_date"] or doc.doc_date,
-                    uncertain=o["uncertain"],
-                    unverified=o["unverified"],
-                    note=o["note"],
-                )
-                session.add(db_obs)
-                created_obs.append(db_obs)
-
-            for m in med_rows:
-                db_med = Medication(
-                    patient_id=patient_id,
-                    source="rx",
-                    document_id=doc.id,
-                    page_id=page.id,
-                    block_id=block_key_to_id.get(m["block_id"]) if m["block_id"] else None,
-                    name_as_written=m["name_as_written"],
-                    generic_name=m["generic_name"],
-                    strength=m["strength"],
-                    frequency=m["frequency"],
-                    rx_date=m["rx_date"] or doc.doc_date,
-                    uncertain=m["uncertain"],
-                    unverified=m["unverified"],
-                    note=m["note"],
-                )
-                session.add(db_med)
-                created_meds.append(db_med)
-
+        for page in pages:
+            obs, meds = ingest_page(session, patient_id=patient_id, doc=doc, page=page)
+            created_obs.extend(obs)
+            created_meds.extend(meds)
         doc.status = "done"
+        doc.error = None
+        session.add(doc)
         session.commit()
-    except Exception as exc:
+    except Exception as exc:  # extraction errors must not lose the upload
+        log.exception("Extraction failed for document %s", doc.id)
+        session.rollback()
+        doc = session.get(Document, doc.id)
         doc.status = "failed"
-        doc.error = str(exc)
+        doc.error = str(exc)[:1000]
+        session.add(doc)
         session.commit()
+        created_obs, created_meds = [], []
 
     session.refresh(doc)
-    for o in created_obs:
-        session.refresh(o)
-    for m in created_meds:
-        session.refresh(m)
+    for row in [*created_obs, *created_meds]:
+        session.refresh(row)
 
     return {
         "document": doc,
@@ -169,4 +127,5 @@ def get_page_image(
     ).first()
     if not page or not Path(page.image_path).exists():
         raise HTTPException(status_code=404, detail="Page image not found")
-    return FileResponse(page.image_path, media_type="image/png")
+    media_type = "image/png" if page.image_path.lower().endswith(".png") else "image/jpeg"
+    return FileResponse(page.image_path, media_type=media_type)

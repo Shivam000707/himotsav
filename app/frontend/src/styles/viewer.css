@@ -1,0 +1,193 @@
+/* The source viewer: a drawer where the original paper lies on the desk and the marker sits on the line. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(15, 26, 22, 0.58);
+  animation: scrim-in 0.15s ease-out;
+}
+
+.drawer {
+  width: min(660px, 100vw);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--ground);
+  border-left: 3px solid var(--ink);
+  animation: drawer-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(32px);
+    opacity: 0;
+  }
+}
+
+.drawer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px 16px;
+  background: var(--paper);
+  border-bottom: 2px solid var(--ink);
+}
+
+.drawer-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.drawer-title h2 {
+  font-size: 22px;
+}
+
+.drawer-value {
+  margin: 4px 0 2px;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.mark-static {
+  cursor: default;
+}
+
+.mark-static:hover {
+  box-shadow: none;
+}
+
+.drawer-close {
+  flex: none;
+  min-height: 44px;
+  padding: 6px 14px;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.drawer-body > * {
+  flex-shrink: 0; /* otherwise the page image shrinks and the marker lands on the wrong line */
+}
+
+.drawer-sec {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.drawer-sec > * {
+  max-width: 100%;
+}
+
+.drawer-sec h3 {
+  font-size: 18px;
+}
+
+.drawer-sec .field {
+  width: 100%;
+}
+
+.verified-line {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--ok);
+  font-weight: 800;
+}
+
+.edit-inputs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.edit-inputs .input {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+/* Zoomed crop */
+.crop {
+  position: relative;
+  width: 100%;
+  max-height: 220px;
+  overflow: hidden;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-sheet);
+}
+
+.crop img {
+  position: absolute;
+  max-width: none;
+  height: auto;
+}
+
+/* Full page, lying on the desk */
+.sheet {
+  position: relative;
+  width: 100%;
+  background: var(--paper);
+  box-shadow: 0 1px 0 var(--rule-strong), 0 16px 30px -18px rgba(15, 26, 22, 0.55);
+}
+
+.sheet-img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* The highlighter itself: multiply keeps the printed text readable underneath. */
+.paper-mark {
+  position: absolute;
+  background: var(--mark);
+  mix-blend-mode: multiply;
+  border-radius: 0.3em 0.7em 0.4em 0.6em / 0.3em 0.5em 0.4em 0.5em;
+  box-shadow: 0 0 0 2px rgba(230, 194, 0, 0.55);
+  pointer-events: none;
+}
+
+.paper-mark-draw {
+  animation: swipe-on 0.55s 0.15s cubic-bezier(0.5, 0.1, 0.2, 1) backwards;
+}
+
+@keyframes swipe-on {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@media (max-width: 560px) {
+  .drawer-head {
+    padding: 16px;
+  }
+  .drawer-body {
+    padding: 16px 16px 32px;
+  }
+  .drawer-value {
+    font-size: 28px;
+  }
+}
