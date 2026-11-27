@@ -1,0 +1,1388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MediKiosk-DM Walkthrough</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Step-by-step simulation of how MediKiosk-DM prepares a diabetes patient's history before the doctor sees them. Example patient, made-up data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Kalam:wght@400;700&family=Mukta:wght@400;500;600&display=swap">
+<style>
+/* Layout: a presenter's stage. Left column = plain-English narration for the current step; right = the live app screens
+   (kiosk tablet, AI reading, rules, timeline, doctor's laptop). Step rail on top, playback controls pinned at the bottom.
+   Paper reports stay paper-coloured in both themes because they are physical objects. */
+:root{
+  --bg:#ECF0F4; --panel:#FFFFFF; --panel-2:#F5F7FA; --ink:#13233A; --ink-2:#47586D; --ink-3:#66768A; --line:#D3DBE4;
+  --accent:#B45F0E; --accent-ink:#FFFFFF; --accent-soft:#FBEAD5;
+  --pat:#B45F0E; --pat-soft:#FBEAD5;
+  --ai:#5243C2; --ai-soft:#ECE9FB;
+  --code:#0B6E66; --code-soft:#DBF0ED;
+  --doc:#1D3A63; --doc-soft:#E1E8F2;
+  --crit:#B42318; --crit-soft:#FCE5E3;
+  --warn:#8A5A00; --warn-soft:#FFF0C6;
+  --ok:#1E7B4F; --ok-soft:#DCF2E5;
+  --device:#1A2432; --device-2:#263244; --vf-line:#E9EEF5; --scan:#7DD3FC;
+  --screen:#FFFFFF;
+  --paper:#FFFEFA; --paper-ink:#1F2933; --paper-ink-2:#5B6570; --paper-line:#E2DCCF; --paper-shadow:rgba(31,41,51,.14);
+  --paper-ai:#5243C2; --paper-ai-fill:rgba(82,67,194,.12); --paper-hl:#FFE89A;
+  --lab-sunrise:#F7E2CB; --lab-valley:#D9E6F6; --lab-city:#DCEFE2; --rx-head:#FFFFFF;
+  --scrim:rgba(10,18,30,.55);
+  --shadow:0 1px 2px rgba(19,35,58,.06),0 10px 28px rgba(19,35,58,.09);
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,-apple-system,"Nirmala UI","Noto Sans Devanagari",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,"Courier New",monospace;
+  --f-hi:"Mukta","Nirmala UI","Noto Sans Devanagari","Mangal",sans-serif;
+  --f-hand:"Kalam","Segoe Print","Comic Sans MS",cursive;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C141E; --panel:#142030; --panel-2:#1A2839; --ink:#E6EDF6; --ink-2:#AEBBCB; --ink-3:#8C9BAE; --line:#2B3A4E;
+    --accent:#F0A24E; --accent-ink:#1C1206; --accent-soft:#3A2814;
+    --pat:#F0A24E; --pat-soft:#3A2814;
+    --ai:#ADA2FF; --ai-soft:#262046;
+    --code:#5ED1C3; --code-soft:#123532;
+    --doc:#9FBBE8; --doc-soft:#1C2C45;
+    --crit:#FF8F86; --crit-soft:#3E1B19;
+    --warn:#F3C55E; --warn-soft:#3A2E10;
+    --ok:#72D5A3; --ok-soft:#14342A;
+    --device:#04080D; --device-2:#1A2432;
+    --screen:#101B29;
+    --paper:#EEEAE1; --paper-line:#CEC6B6; --paper-shadow:rgba(0,0,0,.45);
+    --scrim:rgba(0,0,0,.65);
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C141E; --panel:#142030; --panel-2:#1A2839; --ink:#E6EDF6; --ink-2:#AEBBCB; --ink-3:#8C9BAE; --line:#2B3A4E;
+  --accent:#F0A24E; --accent-ink:#1C1206; --accent-soft:#3A2814;
+  --pat:#F0A24E; --pat-soft:#3A2814;
+  --ai:#ADA2FF; --ai-soft:#262046;
+  --code:#5ED1C3; --code-soft:#123532;
+  --doc:#9FBBE8; --doc-soft:#1C2C45;
+  --crit:#FF8F86; --crit-soft:#3E1B19;
+  --warn:#F3C55E; --warn-soft:#3A2E10;
+  --ok:#72D5A3; --ok-soft:#14342A;
+  --device:#04080D; --device-2:#1A2432;
+  --screen:#101B29;
+  --paper:#EEEAE1; --paper-line:#CEC6B6; --paper-shadow:rgba(0,0,0,.45);
+  --scrim:rgba(0,0,0,.65);
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,h5,p,ul,ol,figure,blockquote{margin:0}
+button{font:inherit;color:inherit}
+.hi{font-family:var(--f-hi)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.app{max-width:1400px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 0;display:flex;flex-direction:column;gap:14px}
+
+/* ---------- header ---------- */
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.mark{width:48px;height:48px;flex:none}
+.mark .m-body{fill:var(--ink)} .mark .m-scr{fill:var(--accent)} .mark .m-pulse{stroke:var(--panel);fill:none}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(24px,3vw,34px);line-height:1.08;letter-spacing:-.015em;text-wrap:balance}
+h1 .h1-sub{font-weight:500;color:var(--ink-2)}
+.top-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tag-example{display:inline-flex;align-items:center;gap:6px;background:var(--warn-soft);color:var(--warn);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:10px 16px;font-weight:600;font-size:15px;cursor:pointer;line-height:1.2}
+.btn:hover:not(:disabled){border-color:var(--ink-3)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover:not(:disabled){filter:brightness(1.06);border-color:var(--accent)}
+.btn.sm{padding:6px 12px;font-size:13px;border-radius:10px}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* ---------- step rail ---------- */
+.rail{overflow-x:auto;scrollbar-width:thin;padding:2px 2px 6px;min-width:0}
+.rail ol{list-style:none;padding:0;margin:0;display:flex;gap:8px;min-width:max-content}
+.rail button{display:flex;align-items:center;gap:8px;padding:6px 14px 6px 6px;border-radius:999px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-size:14px;font-weight:500;color:var(--ink-2);white-space:nowrap}
+.rail button:hover{border-color:var(--ink-3)}
+.rail .rn{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:600 12px/1 var(--f-mono);background:var(--panel-2);color:var(--ink-2);border:1px solid var(--line)}
+.rail button.done .rn{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.rail button[aria-current="step"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.rail button[aria-current="step"] .rn{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.rdots{display:inline-flex;gap:3px}
+.rdots i{width:7px;height:7px;border-radius:50%;display:block}
+.rdots .d-patient{background:var(--pat)} .rdots .d-ai{background:var(--ai)} .rdots .d-code{background:var(--code)} .rdots .d-doctor{background:var(--doc)}
+
+/* ---------- main grid ---------- */
+.main{min-width:0;display:grid;grid-template-columns:minmax(300px,370px) minmax(0,1fr);gap:16px;align-items:start}
+.narr{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.step-count{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.narr h2{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,2.4vw,30px);line-height:1.12;letter-spacing:-.01em;text-wrap:balance}
+.who{display:flex;flex-wrap:wrap;gap:6px}
+.role{display:inline-flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:3px 10px 3px 8px;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap}
+.role .dot{width:9px;height:9px;border-radius:50%}
+.role-patient .dot{background:var(--pat)} .role-ai .dot{background:var(--ai)} .role-code .dot{background:var(--code)} .role-doctor .dot{background:var(--doc)}
+.eli5{background:var(--accent-soft);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.eli5-label{font-family:var(--f-mono);font-size:11.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+#nEli5{font-size:19px;line-height:1.45;color:var(--ink);text-wrap:pretty}
+.points h3{font-size:13px;font-family:var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin-bottom:8px}
+.points ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:8px}
+.points li{position:relative;padding-left:18px;color:var(--ink-2);font-size:15.5px}
+.points li::before{content:"";position:absolute;left:2px;top:.62em;width:7px;height:7px;border-radius:2px;background:var(--ink-3)}
+.points li b{color:var(--ink)}
+details.behind{border-top:1px solid var(--line);padding-top:12px}
+details.behind summary{cursor:pointer;font-weight:600;font-size:15px;color:var(--ink);list-style:none;display:flex;align-items:center;gap:8px}
+details.behind summary::-webkit-details-marker{display:none}
+details.behind summary::before{content:"+";font-family:var(--f-mono);width:22px;height:22px;border-radius:6px;border:1px solid var(--line);display:grid;place-items:center;font-size:14px;color:var(--ink-2)}
+details.behind[open] summary::before{content:"−"}
+.bd{display:flex;flex-direction:column;gap:8px;margin-top:10px;font-size:14.5px;color:var(--ink-2)}
+.bd b{color:var(--ink)}
+
+/* ---------- stage ---------- */
+.stage{container-type:inline-size;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:clamp(14px,2.2vw,28px);min-height:640px;box-shadow:var(--shadow);min-width:0;position:relative}
+.cap{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+.try{margin-top:14px;font-size:14px;color:var(--ink-2);display:flex;align-items:center;gap:8px}
+.try b{color:var(--accent)}
+.rv{opacity:0;transform:translateY(8px);transition:opacity .4s ease,transform .4s ease}
+.rv.in{opacity:1;transform:none}
+.with-side{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:20px;align-items:start}
+.side{background:var(--panel-2);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;font-size:14.5px;color:var(--ink-2);min-width:0}
+.side h4{font-size:15px;color:var(--ink);font-weight:600}
+.side .tiny{font-size:12.5px;color:var(--ink-3)}
+.side ul{padding-left:18px;display:flex;flex-direction:column;gap:4px}
+
+/* ---------- avatars ---------- */
+.avatar{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font:700 14px/1 var(--f-display);flex:none}
+.avatar.pat{background:var(--pat-soft);color:var(--pat)}
+.avatar.doc{background:var(--doc-soft);color:var(--doc)}
+
+/* ---------- paper documents ---------- */
+.paper{background:var(--paper);color:var(--paper-ink);border:1px solid var(--paper-line);border-radius:4px;box-shadow:0 1px 0 var(--paper-line),0 8px 18px var(--paper-shadow);padding:0 0 10px;font-size:12.5px;transform:rotate(var(--tilt,0deg));position:relative;overflow:hidden}
+.paper .ph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:8px 10px;background:var(--rx-head);border-bottom:1px solid var(--paper-line)}
+.paper.org-sunrise .ph{background:var(--lab-sunrise)} .paper.org-valley .ph{background:var(--lab-valley)} .paper.org-city .ph{background:var(--lab-city)}
+.porg{font-family:var(--f-display);font-weight:700;font-size:13px;line-height:1.2}
+.ptype{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--paper-ink-2);white-space:nowrap}
+.pmeta{display:flex;justify-content:space-between;gap:8px;padding:6px 10px 2px;font-size:11px;color:var(--paper-ink-2);flex-wrap:wrap}
+.pdate{font-family:var(--f-mono);display:inline-block;position:relative}
+.rxmark{font-family:var(--f-display);font-weight:800;font-size:20px;padding:2px 10px 0;line-height:1}
+.ptable{width:calc(100% - 20px);margin:4px 10px 0;border-collapse:collapse;font-family:var(--f-mono);font-size:11.5px}
+.ptable th{font-weight:500;color:var(--paper-ink-2);text-align:left;padding:3px 4px;border-bottom:1px solid var(--paper-line);font-size:10.5px}
+.ptable td{color:var(--paper-ink);padding:4px;border-bottom:1px dashed var(--paper-line);position:relative}
+.ptable .v{text-align:right;font-weight:600}
+.ptable .u{color:var(--paper-ink-2);white-space:nowrap}
+.rx .ptable td{font-family:var(--f-hand);font-size:15px;border-bottom:none;padding:2px 4px}
+.rx .ptable .v{font-weight:700}
+.smudge{filter:blur(1.4px)}
+.paper.big{font-size:15px}
+.paper.big .porg{font-size:16px}
+.paper.big .ptable{font-size:14.5px}
+.paper.big .ptable th{font-size:12px}
+.paper.big .pmeta{font-size:13px}
+.rx.big .ptable td{font-size:19px}
+.paper.blur{filter:blur(3px)}
+.ptable tr.hl td{background:var(--paper-hl)}
+.ptable tr.hl td:first-child{box-shadow:inset 3px 0 0 var(--paper-ai)}
+.aibox{outline:2px solid var(--paper-ai);outline-offset:1px;background:var(--paper-ai-fill);border-radius:3px}
+.aibox[data-tag]::before{content:attr(data-tag);position:absolute;top:-17px;left:-2px;font:600 10px/1 var(--f-mono);background:var(--paper-ai);color:#FFFFFF;padding:3px 5px;border-radius:3px;white-space:nowrap;z-index:2}
+
+/* ---------- scene 1: the bag ---------- */
+.meet{display:flex;flex-direction:column;gap:18px}
+.meet-head{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center;justify-content:space-between}
+.persona{display:flex;gap:12px;align-items:center}
+.pname{font-family:var(--f-display);font-weight:700;font-size:20px}
+.pname span{font-weight:500;color:var(--ink-3);font-size:16px}
+.psub{color:var(--ink-2);font-size:14.5px}
+.facts{display:flex;flex-wrap:wrap;gap:8px}
+.fact{display:flex;flex-direction:column;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:8px 14px;min-width:96px}
+.fnum{font-family:var(--f-display);font-weight:800;font-size:24px;line-height:1.1}
+.flab{font-size:12.5px;color:var(--ink-2)}
+.desk{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:18px;padding:20px;background:var(--panel-2);border:1px solid var(--line);border-radius:16px}
+.desk .paper{animation:drop .55s cubic-bezier(.2,.8,.3,1) both}
+.desk .paper:nth-child(2){animation-delay:.07s}.desk .paper:nth-child(3){animation-delay:.14s}.desk .paper:nth-child(4){animation-delay:.21s}.desk .paper:nth-child(5){animation-delay:.28s}.desk .paper:nth-child(6){animation-delay:.35s}.desk .paper:nth-child(7){animation-delay:.42s}
+@keyframes drop{from{transform:translateY(-14px) rotate(calc(var(--tilt,0deg) * 3))}to{transform:rotate(var(--tilt,0deg))}}
+.dq{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px 16px;align-items:start;background:var(--doc-soft);border-radius:16px;padding:16px}
+.dq-who{display:flex;gap:10px;align-items:center}
+.dq-who b{display:block;color:var(--doc)}
+.dq-who p{font-size:13.5px;color:var(--ink-2)}
+.dq-list{list-style:none;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.dq-list li{background:var(--panel);border:1px solid var(--line);border-radius:14px 14px 14px 4px;padding:8px 12px;font-size:15px}
+.footnote{font-size:13.5px;color:var(--ink-2)}
+.footnote b{color:var(--ink)}
+
+/* ---------- devices ---------- */
+.tablet{background:var(--device);border-radius:30px;padding:14px;box-shadow:var(--shadow);width:100%;max-width:580px;justify-self:center}
+.screen{background:var(--screen);border-radius:18px;overflow:hidden;min-height:440px;display:flex;flex-direction:column;color:var(--ink)}
+.kbar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--ink-2)}
+.kbrand{font-family:var(--f-display);font-weight:800;color:var(--ink);font-size:14px}
+.kmeta{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.klang{background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-family:var(--f-hi);font-size:13px;color:var(--ink)}
+.kbody{padding:18px;display:flex;flex-direction:column;gap:14px;flex:1}
+.k-hello{display:flex;flex-direction:column}
+.k-hello .hi{font-size:30px;font-weight:600;line-height:1.2}
+.k-hello-en{color:var(--ink-2);font-size:15px}
+.k-ask{font-size:16px;color:var(--ink-2)}
+.k-ask .hi{color:var(--ink);font-size:18px}
+.langs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.lang{border:2px solid var(--line);background:var(--panel-2);border-radius:16px;padding:16px 12px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;transition:transform .15s,border-color .15s,background .15s}
+.lang:hover{border-color:var(--ink-3)}
+.lang-big{font-size:26px;font-weight:600;line-height:1.2}
+.lang-small{font-size:13.5px;color:var(--ink-2)}
+.lang[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.lang.tap{animation:tap .45s ease}
+@keyframes tap{40%{transform:scale(.95)}}
+.k-more{font-size:13px;color:var(--ink-3);text-align:center}
+.k-intro{display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--line);padding-top:12px}
+.k-line{font-size:17px;line-height:1.45}
+.k-line-sub{font-size:13.5px;color:var(--ink-2);margin-bottom:6px}
+.kbtn{align-self:flex-start;margin-top:6px;background:var(--accent);color:var(--accent-ink);border-radius:12px;padding:10px 18px;font-weight:700;font-size:16px;display:inline-block}
+.qr{width:150px;height:150px;align-self:center}
+.qr .qf{fill:var(--ink)} .qr .qb{fill:var(--panel-2)}
+
+/* ---------- scene 3: camera ---------- */
+.k-title{font-size:19px;line-height:1.4;font-weight:600}
+.k-title-en{font-size:14px;color:var(--ink-2);margin-top:-10px}
+.vf{position:relative;background:var(--device-2);border-radius:14px;height:270px;display:grid;place-items:center;overflow:hidden}
+.vf .c{position:absolute;width:26px;height:26px;border-color:var(--vf-line);border-style:solid;border-width:0}
+.vf .tl{top:12px;left:12px;border-top-width:3px;border-left-width:3px;border-top-left-radius:6px}
+.vf .tr{top:12px;right:12px;border-top-width:3px;border-right-width:3px;border-top-right-radius:6px}
+.vf .bl{bottom:12px;left:12px;border-bottom-width:3px;border-left-width:3px;border-bottom-left-radius:6px}
+.vf .br{bottom:12px;right:12px;border-bottom-width:3px;border-right-width:3px;border-bottom-right-radius:6px}
+.vf-slot{width:min(250px,70%)}
+.vf-slot .paper{animation:slidein .4s ease both}
+@keyframes slidein{from{transform:translateY(40px) rotate(-3deg)}to{transform:rotate(var(--tilt,0deg))}}
+.scan{position:absolute;left:8%;right:8%;height:3px;border-radius:3px;background:var(--scan);box-shadow:0 0 14px var(--scan);top:12%;opacity:0}
+.scan.run{animation:scan .9s ease-in-out}
+@keyframes scan{0%{top:12%;opacity:1}100%{top:86%;opacity:.2}}
+.vf-status{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:var(--panel);color:var(--ink);border-radius:999px;padding:6px 14px;font-weight:600;font-size:14px;display:none;align-items:center;gap:6px;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis;box-shadow:var(--shadow)}
+.vf-status.show{display:inline-flex}
+.vf-status.ok{color:var(--ok)} .vf-status.warn{color:var(--crit)}
+.vf-done{color:var(--vf-line);text-align:center;display:flex;flex-direction:column;gap:4px;align-items:center;padding:12px}
+.vf-done .hi{font-size:22px;font-weight:600}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;min-height:72px}
+.thumb{width:52px;height:68px;border-radius:4px;background:var(--paper);border:1px solid var(--paper-line);position:relative;display:flex;flex-direction:column;gap:4px;padding:8px 6px;animation:pop .3s ease both}
+.thumb i.ln{display:block;height:3px;border-radius:2px;background:var(--paper-line)}
+.thumb .tn{position:absolute;bottom:3px;left:5px;font:600 10.5px/1 var(--f-mono);color:var(--paper-ink-2)}
+.thumb .tk{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:var(--ok);color:var(--panel);display:grid;place-items:center}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+.count{font-family:var(--f-mono);font-size:13px;color:var(--ink-2)}
+
+/* ---------- scene 4: AI reading ---------- */
+.read{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:22px;align-items:start}
+.read-paper,.read-out{display:flex;flex-direction:column;gap:12px;min-width:0}
+.read-paper .paper{margin-top:16px}
+.ai-legend{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
+.ai-legend i{width:18px;height:12px;border:2px solid var(--paper-ai);background:var(--paper-ai-fill);border-radius:3px;display:inline-block}
+.xt-scroll{overflow:auto;max-height:420px;border:1px solid var(--line);border-radius:12px}
+.xt{width:100%;border-collapse:collapse;font-size:13.5px;min-width:440px}
+.xt th{position:sticky;top:0;background:var(--panel-2);text-align:left;font-weight:600;font-size:12px;color:var(--ink-2);padding:8px 10px;border-bottom:1px solid var(--line);z-index:1}
+.xt td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.xt tr:last-child td{border-bottom:none}
+.xt tr.new{animation:rowin .35s ease both}
+@keyframes rowin{from{background:var(--ai-soft)}to{background:transparent}}
+.xt tr.now td:first-child{box-shadow:inset 3px 0 0 var(--ai)}
+.xt .val{font-family:var(--f-mono);font-weight:600;font-variant-numeric:tabular-nums}
+.xt .sub{display:block;font-family:var(--f-body);font-weight:400;font-size:12px;color:var(--ink-3)}
+.xt .flash{animation:flash 1s ease}
+@keyframes flash{0%,40%{background:var(--code-soft)}100%{background:transparent}}
+.xt .d{color:var(--ink);font-variant-numeric:tabular-nums}
+.xt .val{white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:4px;font:600 11.5px/1.2 var(--f-mono);padding:4px 8px;border-radius:999px;white-space:nowrap}
+.b-ok{background:var(--ok-soft);color:var(--ok)}
+.b-flag{background:var(--crit-soft);color:var(--crit)}
+.b-missing{background:var(--warn-soft);color:var(--warn)}
+.b-check{background:var(--ai-soft);color:var(--ai)}
+.b-note{background:var(--doc-soft);color:var(--doc)}
+.b-wait{background:var(--panel-2);color:var(--ink-3);border:1px solid var(--line)}
+.b-run{background:var(--code-soft);color:var(--code)}
+.fixes{display:flex;flex-direction:column;gap:8px}
+.fix{display:flex;gap:10px;align-items:flex-start;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14.5px}
+.fix p{min-width:0}
+.tally{font-family:var(--f-display);font-weight:700;font-size:19px;min-height:1.4em}
+.tally span{color:var(--accent)}
+
+/* ---------- scene 5: interview ---------- */
+.chat-body{gap:10px}
+.chat{flex:1;height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:2px 4px 2px 0;scroll-behavior:smooth}
+.msg{max-width:86%;padding:10px 13px;border-radius:16px;animation:pop .3s ease both}
+.msg.k{background:var(--panel-2);border:1px solid var(--line);align-self:flex-start;border-top-left-radius:5px}
+.msg.p{background:var(--pat-soft);align-self:flex-end;border-top-right-radius:5px}
+.msg.end{background:var(--ok-soft);border-color:transparent}
+.msg .hi{font-size:17.5px;line-height:1.45}
+.msg .en,.confirm .en{font-size:13.5px;color:var(--ink-2);margin-top:2px}
+.chat.no-en .en{display:none}
+.wave{display:inline-flex;gap:4px;align-items:center;height:26px}
+.wave i{width:4px;height:8px;border-radius:2px;background:var(--pat);animation:wv .8s ease-in-out infinite}
+.wave i:nth-child(2){animation-delay:.1s}.wave i:nth-child(3){animation-delay:.2s}.wave i:nth-child(4){animation-delay:.3s}.wave i:nth-child(5){animation-delay:.4s}
+@keyframes wv{50%{height:24px}}
+.confirm{align-self:flex-end;max-width:90%;border:1.5px dashed var(--ink-3);background:var(--screen);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;animation:pop .3s ease both}
+.confirm .hi:first-child{font-weight:600;font-size:16.5px}
+.confirm.ok{border-style:solid;border-color:var(--ok)}
+.cq{font-size:13.5px;color:var(--ink-2)}
+.cbtns{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+.cbtn{display:inline-flex;align-items:center;gap:6px;border-radius:10px;padding:6px 12px;font-weight:600;font-size:14px;border:1.5px solid var(--line);background:var(--panel)}
+.cbtn.yes{border-color:var(--ok);color:var(--ok)}
+.cbtn.pressed{background:var(--ok);color:var(--panel)}
+.mic{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:10px;font-size:14px;color:var(--ink-2)}
+.mic-ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--panel-2);border:1px solid var(--line);color:var(--ink-2)}
+.mic[data-state="on"] .mic-ic{background:var(--pat);color:var(--accent-ink);border-color:var(--pat);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 8px var(--pat-soft)}}
+.qlist{list-style:none;padding:0;display:flex;flex-direction:column;gap:6px}
+.qlist li{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:10px;color:var(--ink-2)}
+.qlist .qn{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:600 12px/1 var(--f-mono);border:1px solid var(--line);background:var(--panel);flex:none}
+.qlist li.now{background:var(--pat-soft);color:var(--ink);font-weight:600}
+.qlist li.done .qn{background:var(--ok);color:var(--panel);border-color:var(--ok)}
+.toggle{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink);cursor:pointer;border-top:1px solid var(--line);padding-top:10px}
+.toggle input{width:18px;height:18px;accent-color:var(--accent)}
+
+/* ---------- scene 6: rules ---------- */
+.rules-scene{display:flex;flex-direction:column;gap:16px}
+.rules-top{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+.rules-sum{font-weight:600;font-size:15px;color:var(--ink)}
+.rules-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:10px}
+.rule{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--panel);display:flex;flex-direction:column;gap:6px;transition:border-color .3s,background .3s}
+.rule[data-state="run"]{border-color:var(--code);background:var(--code-soft)}
+.rule[data-state="flag"]{border-color:var(--crit)}
+.rule[data-state="missing"]{border-color:var(--warn)}
+.rname{font-weight:600;font-size:15px}
+.rq{font-size:13.5px;color:var(--ink-2)}
+.rev{font-size:13.5px;color:var(--ink);min-height:1.2em}
+.rules-bottom{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px}
+.codebox,.patient-sees{display:flex;flex-direction:column;gap:8px;min-width:0}
+.code{font-family:var(--f-mono);font-size:13px;line-height:1.6;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow-x:auto;white-space:pre;color:var(--ink);margin:0}
+.code .kw{color:var(--code);font-weight:600} .code .str{color:var(--accent)} .code .cm{color:var(--ink-3)} .code .num{color:var(--ai)}
+.mini-screen{background:var(--device);border-radius:16px;padding:10px}
+.mini-screen > div{background:var(--screen);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:2px}
+.mini-screen .hi{font-size:17px;font-weight:600}
+.mini-screen .en{font-size:13px;color:var(--ink-2)}
+.small{font-size:13.5px;color:var(--ink-2)}
+
+/* ---------- scene 7: timeline ---------- */
+.tl{display:flex;flex-direction:column;gap:14px}
+.tl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.tl-scroll svg{display:block;width:100%;min-width:640px;height:auto}
+.tl-item{opacity:0;transition:opacity .45s ease}
+.tl-item.in{opacity:1}
+.t-title{font:600 13px var(--f-body);fill:var(--ink)}
+.t-axis{font:500 12px var(--f-mono);fill:var(--ink-3)}
+.t-tick{font:500 11px var(--f-mono);fill:var(--ink-3)}
+.t-lane{font:600 12.5px var(--f-body);fill:var(--ink-2)}
+.t-val{font:600 13px var(--f-mono);fill:var(--ink)}
+.t-src{font:500 10.5px var(--f-body);fill:var(--ink-3)}
+.t-note{font:600 11.5px var(--f-body);fill:var(--warn)}
+.t-conv{font:600 11px var(--f-body);fill:var(--ai)}
+.t-bar{font:500 11.5px var(--f-body);fill:var(--ink)}
+.t-today{font:600 11.5px var(--f-mono);fill:var(--accent)}
+.g-line{stroke:var(--line);stroke-width:1}
+.g-year{stroke:var(--line);stroke-width:1;stroke-dasharray:3 5}
+.g-axis{stroke:var(--ink-3);stroke-width:1}
+.l-a{stroke:var(--accent);stroke-width:2.5;fill:none}
+.l-a-gap{stroke:var(--accent);stroke-width:2;fill:none;stroke-dasharray:4 6;opacity:.7}
+.p-a{fill:var(--accent);stroke:var(--panel);stroke-width:2}
+.l-b{stroke:var(--doc);stroke-width:2.5;fill:none}
+.l-b-gap{stroke:var(--doc);stroke-width:2;fill:none;stroke-dasharray:4 6;opacity:.7}
+.p-b{fill:var(--doc);stroke:var(--panel);stroke-width:2}
+.ring{fill:none;stroke:var(--ai);stroke-width:2;stroke-dasharray:3 3}
+.bar-ok{fill:var(--doc-soft);stroke:var(--doc);stroke-width:1.2}
+.bar-q{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.2;stroke-dasharray:4 3}
+.p-k{fill:var(--code);stroke:var(--panel);stroke-width:2}
+.zone{fill:url(#hatch);stroke:var(--warn);stroke-width:1}
+.hatch-bg{fill:var(--warn-soft)} .hatch-ln{stroke:var(--warn);stroke-width:1.6}
+.today{stroke:var(--accent);stroke-width:1.5;stroke-dasharray:5 4}
+.tl-notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tl-note{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;color:var(--ink-2)}
+.tl-note b{display:block;color:var(--ink);font-size:14.5px}
+
+/* ---------- scene 8: dashboard ---------- */
+.dash-wrap{display:flex;flex-direction:column;gap:10px}
+.laptop{background:var(--device);border-radius:16px 16px 8px 8px;padding:10px;box-shadow:var(--shadow)}
+.dash{background:var(--screen);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px;color:var(--ink)}
+.dash-top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.dt-left{display:flex;gap:12px;align-items:center;min-width:0}
+.dt-name{font-family:var(--f-display);font-weight:700;font-size:20px;line-height:1.2}
+.dt-name span{font-family:var(--f-mono);font-weight:500;font-size:13px;color:var(--ink-3);margin-left:6px}
+.dt-sub{font-size:13.5px;color:var(--ink-2)}
+.dash-banner{background:var(--doc-soft);color:var(--ink);border-radius:10px;padding:8px 12px;font-size:13.5px}
+.dash-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px}
+.dcard{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--panel);display:flex;flex-direction:column;gap:10px;min-width:0}
+.dcard h5{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.flags{list-style:none;padding:0;display:flex;flex-direction:column;gap:8px}
+.flags li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:8px;align-items:start;font-size:14px}
+.flags .badge{justify-self:start}
+.srcval{font:inherit;font-family:var(--f-mono);font-weight:600;font-size:.92em;color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:1px 7px;cursor:pointer;display:inline-flex;gap:5px;align-items:center;vertical-align:baseline;white-space:nowrap}
+.srcval:hover{border-color:var(--accent);color:var(--accent)}
+.srcval .src-ic{display:inline-grid;color:var(--ink-3)}
+.srcval.pulse{animation:hint 1.4s ease-in-out 3}
+@keyframes hint{50%{box-shadow:0 0 0 5px var(--accent-soft);border-color:var(--accent)}}
+.lr{width:100%;border-collapse:collapse;font-size:14px}
+.lr th{text-align:left;font-weight:500;color:var(--ink-2);padding:6px 6px 6px 0;border-bottom:1px solid var(--line)}
+.lr td{padding:6px 0 6px 6px;border-bottom:1px solid var(--line)}
+.lr tr:last-child th,.lr tr:last-child td{border-bottom:none}
+.lr .d{color:var(--ink-3);font-size:12.5px;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+.spark-wrap{display:flex;flex-direction:column;gap:4px}
+.spark-cap{font-size:12px;color:var(--ink-3)}
+.spark{width:100%;max-width:300px;height:auto}
+.spark .sl{stroke:var(--accent);stroke-width:2;fill:none}
+.spark .sp{fill:var(--accent)}
+.spark .st{font:600 11px var(--f-mono);fill:var(--ink)}
+.spark .sx{font:500 10px var(--f-mono);fill:var(--ink-3)}
+.meds{list-style:none;padding:0;display:flex;flex-direction:column;gap:10px}
+.meds li{display:flex;flex-direction:column;gap:3px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.meds li:last-child{border-bottom:none;padding-bottom:0}
+.med-name{font-weight:600;font-size:15px}
+.med-name span{font-weight:400;color:var(--ink-3)}
+.med-dose{font-size:13.5px;color:var(--ink-2);font-family:var(--f-mono)}
+.med-state{display:flex;gap:6px;align-items:flex-start;font-size:13.5px}
+.med-state svg{flex:none;margin-top:3px}
+.med-state.ok{color:var(--ok)} .med-state.warn{color:var(--warn)}
+.quotes{list-style:none;padding:0;display:flex;flex-direction:column;gap:8px}
+.quotes li{background:var(--pat-soft);border-radius:12px;padding:8px 12px}
+.quotes .hi{font-size:16px}
+.quotes .en{font-size:13px;color:var(--ink-2)}
+.sum-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sum{font-size:15px;line-height:1.6;border-radius:8px;padding:4px 6px;margin:-4px -6px}
+.sum[contenteditable="true"]{outline:2px solid var(--accent);background:var(--panel-2)}
+.sum-note{font-size:12.5px;color:var(--ink-3)}
+.sum-note.edited{color:var(--ok);font-weight:600}
+#reviewBtn.done{background:var(--ok);border-color:var(--ok);color:var(--panel)}
+
+/* ---------- scene 9: decide ---------- */
+.decide{display:flex;flex-direction:column;gap:16px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cmp{border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.cmp.before{background:var(--panel-2)}
+.cmp.after{background:var(--panel);border-color:var(--ok)}
+.cmp h4{font-family:var(--f-display);font-size:19px;font-weight:700}
+.cmp.after h4{color:var(--ok)}
+.cmp-sub{font-size:13px;color:var(--ink-3);margin-top:-6px}
+.talk{display:flex;flex-direction:column;gap:8px}
+.ln{display:flex;gap:8px;align-items:flex-start}
+.ln .who-s{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:700 11px/1 var(--f-display)}
+.ln .who-s.d{background:var(--doc-soft);color:var(--doc)} .ln .who-s.p{background:var(--pat-soft);color:var(--pat)}
+.ln p{font-size:14.5px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:7px 11px;min-width:0}
+.cmp.after .ln p{background:var(--panel-2)}
+.ln .act{font-style:italic;color:var(--ink-3)}
+.cmp-out{font-weight:600;font-size:14.5px;border-top:1px solid var(--line);padding-top:10px}
+.cmp.before .cmp-out{color:var(--crit)} .cmp.after .cmp-out{color:var(--ok)}
+.never{background:var(--ink);color:var(--bg);border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.never h4{font-family:var(--f-display);font-size:20px}
+.never ul{list-style:none;padding:0;display:flex;flex-wrap:wrap;gap:8px 22px}
+.never li{display:flex;gap:8px;align-items:center;font-weight:600}
+.never li svg{flex:none}
+.never p{opacity:.85}
+
+/* ---------- scene 10: journey ---------- */
+.journey{display:flex;flex-direction:column;gap:18px}
+.sdg{display:flex;align-items:center;gap:12px;background:var(--ok-soft);border-radius:14px;padding:10px 14px;color:var(--ink);font-size:14.5px}
+.sdg b{font-family:var(--f-display);font-size:22px;color:var(--ok);line-height:1}
+.pipe{display:flex;align-items:stretch;gap:6px}
+.node{flex:1;min-width:0;border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px;background:var(--panel)}
+.node .nn{font:600 11px var(--f-mono);color:var(--ink-3);letter-spacing:.06em}
+.node h5{font-size:15px;font-weight:600;line-height:1.3}
+.node p{font-size:13px;color:var(--ink-2)}
+.arrow{flex:none;display:grid;place-items:center;color:var(--ink-3)}
+.jcards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.jcard{border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--panel-2);min-width:0}
+.jcard h4{font-size:15.5px;font-weight:600}
+.jcard ul{padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:14px;color:var(--ink-2)}
+.jcard ul b{color:var(--ink)}
+.wtable-wrap{overflow-x:auto}
+.wtable{width:100%;border-collapse:collapse;font-size:13.5px;min-width:420px}
+.wtable th,.wtable td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.wtable thead th{font-size:12px;color:var(--ink-3);font-weight:600}
+.wtable tbody th{font-weight:600;white-space:nowrap}
+.wtable tr:last-child th,.wtable tr:last-child td{border-bottom:none}
+
+/* ---------- controls & footer ---------- */
+.controls{position:sticky;bottom:0;z-index:20;padding-top:10px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));background:var(--bg)}
+.progress{height:4px;border-radius:4px;background:var(--line);overflow:hidden;margin-bottom:10px}
+.progress-fill{height:100%;width:10%;background:var(--accent);border-radius:4px;transition:width .35s ease}
+.ctl-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl-hint{flex:1;text-align:center;font-size:13px;color:var(--ink-3);min-width:0}
+.ctl-hint kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--panel)}
+.foot{font-size:13px;color:var(--ink-3);padding:6px 0 18px;display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+
+/* ---------- source modal ---------- */
+.modal{position:fixed;inset:0;z-index:50;background:var(--scrim);display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow-y:auto}
+.m-card{background:var(--panel);color:var(--ink);border-radius:18px;padding:18px;max-width:540px;width:100%;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px}
+.m-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.m-head h4{font-size:16.5px;font-weight:600;line-height:1.3}
+.m-note{font-size:13.5px;color:var(--ink-2)}
+.m-quote{background:var(--pat-soft);border-radius:12px;padding:12px 14px}
+.m-quote .hi{font-size:19px}
+.m-quote .en{color:var(--ink-2)}
+
+/* ---------- responsive ---------- */
+@media (max-width:1000px){
+  .main{grid-template-columns:minmax(0,1fr)}
+  .narr{position:static}
+}
+@container (max-width:820px){
+  .with-side,.read,.dash-grid,.compare,.jcards,.rules-bottom{grid-template-columns:minmax(0,1fr)}
+  .tl-notes{grid-template-columns:minmax(0,1fr)}
+  .pipe{flex-direction:column}
+  .arrow{transform:rotate(90deg)}
+  .dq{grid-template-columns:minmax(0,1fr)}
+}
+@container (max-width:460px){
+  .langs{grid-template-columns:1fr}
+  .flags li{grid-template-columns:minmax(0,1fr)}
+  .stage{min-height:0}
+}
+@media (max-width:640px){
+  .stage{min-height:0}
+  .ctl-hint{display:none}
+  #nEli5{font-size:17.5px}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><rect class="m-body" x="6" y="4" width="36" height="30" rx="7"/><rect class="m-scr" x="10" y="8" width="28" height="22" rx="4"/><path class="m-pulse" d="M13 20h5l3-6 4 11 3-5h7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><rect class="m-body" x="21" y="34" width="6" height="7"/><rect class="m-body" x="14" y="41" width="20" height="4" rx="2"/></svg>
+      <div>
+        <p class="eyebrow">Team Mayhem · HIMOVATION 2026 Solve-a-Thon · AI for Healthcare</p>
+        <h1>MediKiosk-DM <span class="h1-sub">how the app works, step by step</span></h1>
+      </div>
+    </div>
+    <div class="top-tools">
+      <span class="tag-example">Example patient · all data made up</span>
+      <button class="btn sm" id="themeBtn" type="button">Dark mode</button>
+      <button class="btn sm" id="fsBtn" type="button">Full screen</button>
+    </div>
+  </header>
+
+  <nav class="rail" aria-label="Steps of the simulation"><ol id="rail"></ol></nav>
+
+  <main class="main">
+    <section class="narr" aria-live="polite">
+      <p class="step-count" id="nStep">Step 1 of 10</p>
+      <h2 id="nTitle">Meet Ramesh ji and his bag of papers</h2>
+      <div class="who" id="nWho"></div>
+      <div class="eli5"><p class="eli5-label">In simple words</p><p id="nEli5"></p></div>
+      <div class="points"><h3>What happens</h3><ul id="nPoints"></ul></div>
+      <details class="behind" id="nBehind"><summary>Behind the scenes</summary><div class="bd" id="nBehindBody"></div></details>
+    </section>
+    <section class="stage" id="stage" aria-label="App screens for this step"></section>
+  </main>
+
+  <div class="controls">
+    <div class="progress" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="ctl-row">
+      <button class="btn" id="prevBtn" type="button">← Back</button>
+      <button class="btn" id="replayBtn" type="button">Replay step</button>
+      <button class="btn" id="skipBtn" type="button">Show all now</button>
+      <button class="btn" id="playBtn" type="button" aria-pressed="false">Play tour</button>
+      <span class="ctl-hint">Keys: <kbd>←</kbd> <kbd>→</kbd> move · <kbd>P</kbd> play · <kbd>S</kbd> show all</span>
+      <button class="btn primary" id="nextBtn" type="button">Next →</button>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <span>MediKiosk-DM prepares information for the doctor. It never diagnoses, changes medicines or gives treatment advice.</span>
+    <span>Team Mayhem · Swami Rama Himalayan University</span>
+  </footer>
+</div>
+
+<div class="modal" id="srcModal" hidden role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="m-card">
+    <div class="m-head"><div><p class="cap">Where this came from</p><h4 id="mTitle"></h4></div><button class="btn sm" id="mClose" type="button">Close</button></div>
+    <div id="mBody"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var RM = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  /* ---------- scheduler: every timed step of a scene goes through T, so it can be skipped or cancelled ---------- */
+  var T = {
+    items: [],
+    at: function (ms, fn) {
+      if (RM) { fn(); return; }
+      var it = { ms: ms, fn: fn, done: false };
+      it.id = setTimeout(function () { it.done = true; fn(); T.changed(); }, ms);
+      T.items.push(it); T.changed();
+    },
+    skip: function () {
+      var rest = T.items.filter(function (i) { return !i.done; }).sort(function (a, b) { return a.ms - b.ms; });
+      rest.forEach(function (i) { clearTimeout(i.id); i.done = true; });
+      rest.forEach(function (i) { i.fn(); });
+      T.changed();
+    },
+    clear: function () { T.items.forEach(function (i) { clearTimeout(i.id); }); T.items = []; T.changed(); },
+    pending: function () { return T.items.some(function (i) { return !i.done; }); },
+    changed: function () { var b = $('#skipBtn'); if (b) b.disabled = !T.pending(); }
+  };
+
+  var ICON = {
+    check: '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    warn: '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 1.8l6.6 11.7H1.4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 6.2v3.4M8 11.4v.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    doc: '<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5H4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 8h4M6.5 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+    mic: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="5.5" y="1.5" width="5" height="8.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 7.5a5 5 0 0010 0M8 12.5v2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    x: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.3 5.3l5.4 5.4M10.7 5.3l-5.4 5.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+    arrow: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+
+  /* ---------- example data (all made up) ---------- */
+  var PAPERS = [
+    { id: 'p1', kind: 'lab', org: 'Sunrise Pathology', k: 'sunrise', short: 'Sunrise Pathology', date: '14 Feb 2023',
+      rows: [{ label: 'HbA1c', value: '7.2', unit: '%' }, { label: 'Fasting glucose', value: '142', unit: 'mg/dL' }] },
+    { id: 'p2', kind: 'rx', org: 'Dr. A · General Physician', k: 'dra', short: 'Dr. A', date: '20 Feb 2023',
+      rows: [{ label: 'Tab. Glycomet 500', value: '1-0-1' }] },
+    { id: 'p3', kind: 'lab', org: 'Valley Diagnostics', k: 'valley', short: 'Valley Diagnostics', date: '09 Sep 2023',
+      rows: [{ label: 'HbA1c', value: '7.6', unit: '%' }, { label: 'Fasting glucose', value: '8.9', unit: 'mmol/L' }] },
+    { id: 'p4', kind: 'lab', org: 'Sunrise Pathology', k: 'sunrise', short: 'Sunrise Pathology', date: '18 Jun 2024',
+      rows: [{ label: 'HbA1c', value: '8.3', unit: '%' }, { label: 'Creatinine', value: '1.1', unit: 'mg/dL' }, { label: 'LDL cholesterol', value: '128', unit: 'mg/dL' }] },
+    { id: 'p5', kind: 'rx', org: 'Dr. B · Diabetes Clinic', k: 'drb', short: 'Dr. B', date: '02 Jul 2024',
+      rows: [{ label: 'Tab. Glycomet 500', value: '1-0-1' }, { label: 'Tab. Amaryl <span class="smudge">1</span> mg', value: '1-0-0' }] },
+    { id: 'p6', kind: 'lab', org: 'City Health Lab', k: 'city', short: 'City Health Lab', date: '21 Aug 2025',
+      rows: [{ label: 'Creatinine', value: '1.2', unit: 'mg/dL' }, { label: 'Urine albumin / creatinine', value: '24', unit: 'mg/g' }] },
+    { id: 'p7', kind: 'lab', org: 'Valley Diagnostics', k: 'valley', short: 'Valley Diagnostics', date: '12 Aug 2026',
+      rows: [{ label: 'HbA1c', value: '8.9', unit: '%' }, { label: 'Fasting glucose', value: '176', unit: 'mg/dL' }] }
+  ];
+  var PAPER = {}; PAPERS.forEach(function (p) { PAPER[p.id] = p; });
+  var TILTS = [-2.2, 1.6, -0.8, 2.4, -1.5, 1.1, -2.6];
+
+  var QA = [
+    { topic: 'Years with diabetes',
+      qh: 'नमस्ते रमेश जी! आपको शुगर (डायबिटीज़) कितने साल से है?', qe: 'Hello Ramesh ji! How many years have you had sugar (diabetes)?',
+      ah: 'करीब दस साल से।', ae: 'For about ten years.',
+      ch: 'डायबिटीज़: लगभग 10 साल', ce: 'Diabetes: about 10 years' },
+    { topic: 'Current medicines',
+      qh: 'आप आजकल कौन-कौन सी दवाइयाँ लेते हैं?', qe: 'Which medicines do you take these days?',
+      ah: 'ग्लाइकोमेट, सुबह और रात को एक-एक गोली।', ae: 'Glycomet, one tablet in the morning and one at night.',
+      ch: 'दवा: ग्लाइकोमेट 500, सुबह और रात', ce: 'Medicine: Glycomet 500, morning and night' },
+    { topic: 'Missed doses',
+      qh: 'क्या कभी दवा लेना भूल जाते हैं?', qe: 'Do you ever forget to take your medicine?',
+      ah: 'हाँ, हफ़्ते में दो-तीन बार रात की गोली भूल जाता हूँ।', ae: 'Yes, two or three times a week I forget the night tablet.',
+      ch: 'रात की गोली: हफ़्ते में 2–3 बार छूटती है', ce: 'Night tablet: missed 2–3 times a week' },
+    { topic: 'Shaky or sweaty spells',
+      qh: 'क्या कभी अचानक काँपना, पसीना आना या घबराहट होती है?', qe: 'Do you ever suddenly feel shaky, sweaty or uneasy?',
+      ah: 'हाँ, पिछले महीने दो-तीन बार शाम को ऐसा हुआ।', ae: 'Yes, it happened two or three times last month, in the evening.',
+      ch: 'काँपना / पसीना: पिछले महीने 2–3 बार, शाम को', ce: 'Shaky or sweaty: 2–3 times last month, in the evening' },
+    { topic: 'Feet and eyes',
+      qh: 'पैरों में कोई घाव, सुन्नपन या झुनझुनी? आँखों से धुंधला तो नहीं दिखता?', qe: 'Any wound, numbness or tingling in your feet? Any blurry vision?',
+      ah: 'पैरों में कभी-कभी झुनझुनी होती है। आँखें ठीक हैं।', ae: 'Sometimes my feet tingle. My eyes are fine.',
+      ch: 'पैरों में झुनझुनी: हाँ · आँखें: ठीक', ce: 'Tingling in feet: yes · Eyes: fine' },
+    { topic: 'Anything else',
+      qh: 'क्या कोई और बात है जो आप आज डॉक्टर को बताना चाहेंगे?', qe: 'Is there anything else you would like to tell the doctor today?',
+      ah: 'नहीं, बस इतना ही।', ae: 'No, that is all.', ch: null }
+  ];
+
+  var EX = [
+    { p: 'p1', what: 'HbA1c', raw: '7.2 %' },
+    { p: 'p1', what: 'Fasting glucose', raw: '142 mg/dL' },
+    { p: 'p2', what: 'Medicine', raw: 'Glycomet 500 · 1-0-1', clean: 'Metformin 500 mg · 1-0-1', sub: 'written as Glycomet 500', fix: 'name' },
+    { p: 'p3', what: 'HbA1c', raw: '7.6 %', now: true },
+    { p: 'p3', what: 'Fasting glucose', raw: '8.9 mmol/L', clean: '160 mg/dL', sub: 'converted from 8.9 mmol/L', fix: 'unit', now: true },
+    { p: 'p4', what: 'HbA1c', raw: '8.3 %' },
+    { p: 'p4', what: 'Creatinine', raw: '1.1 mg/dL' },
+    { p: 'p4', what: 'LDL cholesterol', raw: '128 mg/dL' },
+    { p: 'p5', what: 'Medicine', raw: 'Glycomet 500 · 1-0-1', clean: 'Metformin 500 mg · 1-0-1', sub: 'written as Glycomet 500', fix: 'name' },
+    { p: 'p5', what: 'Medicine', raw: 'Amaryl ? mg · 1-0-0', clean: 'Glimepiride ? mg · 1-0-0', sub: 'written as Amaryl · dose looks like 1 mg or 2 mg', fix: 'name', unsure: true },
+    { p: 'p6', what: 'Creatinine', raw: '1.2 mg/dL' },
+    { p: 'p6', what: 'Urine albumin / creatinine', raw: '24 mg/g' },
+    { p: 'p7', what: 'HbA1c', raw: '8.9 %' },
+    { p: 'p7', what: 'Fasting glucose', raw: '176 mg/dL' }
+  ];
+
+  var RULES = [
+    { name: 'Urgent symptoms', q: 'Chest pain, fainting or severe breathlessness reported?', ev: 'Not reported', res: 'ok' },
+    { name: 'Possible low-sugar symptoms', q: 'Shaky or sweaty spells reported?', ev: '“2–3 times last month, in the evening”', res: 'flag' },
+    { name: 'Missed doses', q: 'Forgets medicine at least once a week?', ev: 'Night tablet, 2–3 times a week', res: 'note' },
+    { name: 'Feet and eyes', q: 'Wound, numbness or tingling in feet? Blurry vision?', ev: 'Tingling in feet. Eyes fine.', res: 'note' },
+    { name: 'HbA1c up to date', q: 'HbA1c done in the last 3 months?', ev: 'Last: 12 Aug 2026, 2 months ago', res: 'ok' },
+    { name: 'Kidney test up to date', q: 'Creatinine or urine albumin in the last 12 months?', ev: 'Last: 21 Aug 2025, about 14 months ago', res: 'missing' },
+    { name: 'Cholesterol test up to date', q: 'Lipid profile in the last 12 months?', ev: 'Last: 18 Jun 2024, about 28 months ago', res: 'missing' },
+    { name: 'Medicine match', q: 'Is every prescribed medicine mentioned by the patient?', ev: 'Amaryl (Jul 2024) not mentioned today', res: 'check' },
+    { name: 'Unclear readings', q: 'Did the AI mark anything as unsure?', ev: 'Amaryl dose: 1 mg or 2 mg?', res: 'check' }
+  ];
+  var RES = { ok: ['b-ok', 'All good'], flag: ['b-flag', 'Doctor to review'], missing: ['b-missing', 'Missing'], check: ['b-check', 'To confirm'], note: ['b-note', 'Note'] };
+
+  var ROLES = { patient: 'Patient', ai: 'AI', code: 'Plain code (no AI)', doctor: 'Doctor' };
+  function roleChip(r, label) { return '<span class="role role-' + r + '"><span class="dot"></span>' + (label || ROLES[r]) + '</span>'; }
+
+  /* ---------- shared pieces ---------- */
+  function paperHTML(p, o) {
+    o = o || {};
+    var rx = p.kind === 'rx';
+    var rows = p.rows.map(function (r, i) {
+      return '<tr data-row="' + i + '"' + (o.hl === i ? ' class="hl"' : '') + '><td class="l">' + r.label + '</td><td class="v">' + r.value + '</td>' + (rx ? '' : '<td class="u">' + r.unit + '</td>') + '</tr>';
+    }).join('');
+    var tilt = (o.tilt != null) ? ' style="--tilt:' + TILTS[o.tilt % TILTS.length] + 'deg"' : '';
+    return '<article class="paper ' + (rx ? 'rx' : 'lab') + ' org-' + p.k + ' ' + (o.size || '') + '" data-paper="' + p.id + '"' + tilt + '>' +
+      '<header class="ph"><span class="porg">' + p.org + '</span><span class="ptype">' + (rx ? 'Prescription' : 'Lab report') + '</span></header>' +
+      '<p class="pmeta"><span>Ramesh Kumar · 58 · M</span><span class="pdate">' + p.date + '</span></p>' +
+      (rx ? '<p class="rxmark" aria-hidden="true">Rx</p>' : '') +
+      '<table class="ptable">' + (rx ? '' : '<thead><tr><th>Test</th><th class="v">Result</th><th class="u">Unit</th></tr></thead>') + '<tbody>' + rows + '</tbody></table>' +
+      '</article>';
+  }
+  function kbar(lang) {
+    return '<div class="kbar"><span class="kbrand">MediKiosk-DM</span><span class="kmeta">General Medicine OPD · Token 47</span><span class="klang" id="kLang">' + lang + '</span></div>';
+  }
+  function qrSVG() {
+    var N = 25, seed = 47, out = '';
+    var rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    var inF = function (x, y) { return (x < 8 && y < 8) || (x > N - 9 && y < 8) || (x < 8 && y > N - 9); };
+    for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) { if (!inF(x, y) && rnd() > 0.52) out += '<rect class="qf" x="' + x + '" y="' + y + '" width="1" height="1"/>'; }
+    var f = function (cx, cy) { return '<rect class="qf" x="' + cx + '" y="' + cy + '" width="7" height="7"/><rect class="qb" x="' + (cx + 1) + '" y="' + (cy + 1) + '" width="5" height="5"/><rect class="qf" x="' + (cx + 2) + '" y="' + (cy + 2) + '" width="3" height="3"/>'; };
+    return '<svg class="qr" viewBox="-2 -2 29 29" role="img" aria-label="Example QR code, not scannable"><rect class="qb" x="-2" y="-2" width="29" height="29"/>' + out + f(0, 0) + f(N - 7, 0) + f(0, N - 7) + '</svg>';
+  }
+  function reveal(stage, step, start) {
+    $$('.rv', stage).forEach(function (el, i) { T.at((start || 100) + i * (step || 160), function () { el.classList.add('in'); }); });
+  }
+
+  /* ---------- scene 1 ---------- */
+  function renderMeet(stage) {
+    var fact = function (n, l) { return '<div class="fact"><span class="fnum">' + n + '</span><span class="flab">' + l + '</span></div>'; };
+    stage.innerHTML =
+      '<div class="meet">' +
+        '<div class="meet-head">' +
+          '<div class="persona"><div class="avatar pat" aria-hidden="true">RK</div><div><p class="pname">Ramesh Kumar <span>(Ramesh ji)</span></p><p class="psub">58 years · type 2 diabetes for about 10 years · speaks Hindi</p></div></div>' +
+          '<div class="facts">' + fact('7', 'papers in his bag') + fact('3', 'different labs') + fact('2', 'earlier doctors') + fact('2', 'units for sugar') + '</div>' +
+        '</div>' +
+        '<div class="desk" role="img" aria-label="Seven papers spread on a table: five lab reports from three labs and two prescriptions">' + PAPERS.map(function (p, i) { return paperHTML(p, { tilt: i }); }).join('') + '</div>' +
+        '<div class="dq">' +
+          '<div class="dq-who"><span class="avatar doc" aria-hidden="true">Dr</span><div><b>Today\'s doctor</b><p>Full waiting room. A few minutes per patient.</p></div></div>' +
+          '<ul class="dq-list"><li>“Which one is your latest sugar report?”</li><li>“Which tablets are you taking now?”</li><li>“When was your last kidney test?”</li></ul>' +
+        '</div>' +
+        '<p class="footnote"><b>How to read a prescription:</b> “1-0-1” means one tablet in the morning, none in the afternoon, one at night. Notice one lab writes sugar as 8.9 <b>mmol/L</b> while the others use <b>mg/dL</b>.</p>' +
+      '</div>';
+  }
+
+  /* ---------- scene 2 ---------- */
+  function renderCheckin(stage) {
+    stage.innerHTML =
+      '<div class="with-side">' +
+        '<div class="tablet"><div class="screen">' + kbar('—') +
+          '<div class="kbody">' +
+            '<p class="k-hello"><span class="hi">नमस्ते, रमेश जी</span><span class="k-hello-en">Welcome, Ramesh ji</span></p>' +
+            '<p class="k-ask"><span class="hi">अपनी भाषा चुनें</span> · Choose your language</p>' +
+            '<div class="langs">' +
+              '<button type="button" class="lang" id="langHi" data-lang="hi" aria-pressed="false"><span class="hi lang-big">हिन्दी</span><span class="lang-small">Hindi</span></button>' +
+              '<button type="button" class="lang" id="langEn" data-lang="en" aria-pressed="false"><span class="lang-big">English</span><span class="lang-small hi">अंग्रेज़ी</span></button>' +
+            '</div>' +
+            '<p class="k-more">More Indian languages later</p>' +
+            '<div class="k-intro" id="kIntro" hidden></div>' +
+          '</div></div></div>' +
+        '<aside class="side">' +
+          '<h4>No tablet free?</h4><p>He can scan this code with his own phone. The same screens open in the phone\'s browser.</p>' + qrSVG() +
+          '<p class="tiny">Example code for the simulation. It does not open anything.</p>' +
+          '<h4>Finds screens hard?</h4><p>A clinic helper sits with him and taps for him.</p>' +
+        '</aside>' +
+      '</div>' +
+      '<p class="try"><b>Try it:</b> tap a language on the screen.</p>';
+
+    var intro = $('#kIntro', stage);
+    var lines = [
+      ['आपकी बारी से पहले, हम आपकी जानकारी डॉक्टर के लिए तैयार करेंगे।', 'Before your turn, we will get your information ready for the doctor.'],
+      ['आप बोलकर या छूकर जवाब दे सकते हैं।', 'You can answer by speaking or by tapping.'],
+      ['आपकी जानकारी सिर्फ़ इस क्लिनिक के डॉक्टर देखेंगे।', 'Only the doctors at this clinic will see your information.']
+    ];
+    function setLang(l) {
+      $$('.lang', stage).forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.lang === l)); });
+      $('#kLang', stage).textContent = l === 'hi' ? 'हिन्दी' : 'English';
+      intro.hidden = false;
+      intro.innerHTML = lines.map(function (x) {
+        return l === 'hi'
+          ? '<p class="k-line hi">' + x[0] + '</p><p class="k-line-sub">' + x[1] + '</p>'
+          : '<p class="k-line">' + x[1] + '</p><p class="k-line-sub hi">' + x[0] + '</p>';
+      }).join('') + '<span class="kbtn">' + (l === 'hi' ? '<span class="hi">शुरू करें</span> · Start' : 'Start · <span class="hi">शुरू करें</span>') + '</span>';
+    }
+    $$('.lang', stage).forEach(function (b) { b.addEventListener('click', function () { setLang(b.dataset.lang); }); });
+    T.at(1600, function () { var b = $('#langHi', stage); if (b) { b.classList.add('tap'); } setLang('hi'); });
+  }
+
+  /* ---------- scene 3 ---------- */
+  function renderPhotos(stage) {
+    stage.innerHTML =
+      '<div class="with-side">' +
+        '<div class="tablet"><div class="screen">' + kbar('हिन्दी') +
+          '<div class="kbody">' +
+            '<p class="k-title hi">अपनी पर्चियाँ एक-एक करके कैमरे के सामने रखें</p>' +
+            '<p class="k-title-en">Hold your papers up to the camera, one at a time.</p>' +
+            '<div class="vf"><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>' +
+              '<div class="vf-slot" id="vfSlot"></div><div class="scan" id="scan"></div><div class="vf-status" id="vfStatus" role="status"></div></div>' +
+            '<div class="thumbs" id="thumbs"></div>' +
+            '<p class="count"><span id="camCount">0</span> of 7 papers captured</p>' +
+          '</div></div></div>' +
+        '<aside class="side">' +
+          '<h4>What the app checks on every photo</h4>' +
+          '<ul><li>Is it sharp enough to read?</li><li>Is there enough light?</li><li>Is the whole page inside the frame?</li></ul>' +
+          '<p>If a photo fails, it asks for a retake straight away, while Ramesh ji is still standing there.</p>' +
+          '<p class="tiny">The photos are kept with his visit, so the doctor can look at the original paper later.</p>' +
+        '</aside>' +
+      '</div>';
+
+    var slot = $('#vfSlot', stage), scan = $('#scan', stage), st = $('#vfStatus', stage), thumbs = $('#thumbs', stage), cnt = $('#camCount', stage);
+    var n = 0;
+    function runScan() { scan.classList.remove('run'); void scan.offsetWidth; scan.classList.add('run'); }
+    function status(kind, html) { st.className = 'vf-status show ' + kind; st.innerHTML = html; }
+    var t = 400;
+    PAPERS.forEach(function (p, i) {
+      var blurry = (i === 6);
+      T.at(t, function () { slot.innerHTML = paperHTML(p, { tilt: i }); st.className = 'vf-status'; if (blurry) slot.firstChild.classList.add('blur'); runScan(); });
+      if (blurry) {
+        T.at(t + 950, function () { status('warn', ICON.warn + '<span class="hi">फ़ोटो धुंधली है</span>&nbsp;· Blurry, please retake'); });
+        T.at(t + 2300, function () { var pp = slot.firstChild; if (pp) pp.classList.remove('blur'); st.className = 'vf-status'; runScan(); });
+        t += 1350;
+      }
+      T.at(t + 950, function () {
+        status('ok', ICON.check + ' Clear photo');
+        n += 1; cnt.textContent = String(n);
+        thumbs.insertAdjacentHTML('beforeend', '<div class="thumb" title="' + p.org + ', ' + p.date + '"><i class="ln"></i><i class="ln"></i><i class="ln"></i><span class="tn">' + (i + 1) + '</span><span class="tk">' + ICON.check + '</span></div>');
+      });
+      t += 1350;
+    });
+    T.at(t + 300, function () {
+      st.className = 'vf-status';
+      slot.innerHTML = '<div class="vf-done"><span class="hi">सब पर्चियाँ मिल गईं</span><span>All 7 papers captured</span></div>';
+    });
+  }
+
+  /* ---------- scene 4 ---------- */
+  function renderRead(stage) {
+    stage.innerHTML =
+      '<div class="read">' +
+        '<div class="read-paper">' +
+          '<p class="cap">Photo 3 of 7 · the AI is reading it now</p>' +
+          '<div id="readPaper">' + paperHTML(PAPER.p3, { size: 'big' }) + '</div>' +
+          '<p class="ai-legend"><i></i> = where the AI found something it needs</p>' +
+        '</div>' +
+        '<div class="read-out">' +
+          '<p class="cap">What the AI wrote down from all 7 papers</p>' +
+          '<div class="xt-scroll"><table class="xt"><thead><tr><th>What</th><th>Value</th><th>From</th><th>Sure?</th></tr></thead><tbody id="xtBody"></tbody></table></div>' +
+          '<div class="fixes">' +
+            '<div class="fix rv" id="fixUnit">' + roleChip('code', 'Plain code') + '<p><b>Unit fix:</b> 8.9 mmol/L × 18 = <b>160 mg/dL</b>, so every sugar value uses the same unit.</p></div>' +
+            '<div class="fix rv" id="fixName">' + roleChip('code', 'Plain code') + '<p><b>Name fix:</b> brand names become medicine names. Glycomet → Metformin. Amaryl → Glimepiride.</p></div>' +
+            '<div class="fix rv" id="fixUnsure">' + roleChip('ai', 'AI') + '<p><b>Not sure:</b> the Amaryl dose looks like 1 mg or 2 mg. It is marked for the doctor, not guessed.</p></div>' +
+          '</div>' +
+          '<p class="tally" id="tally"></p>' +
+        '</div>' +
+      '</div>';
+
+    var paper = $('#readPaper .paper', stage);
+    var cells = function (r) { return $$('tbody tr[data-row="' + r + '"] td', paper); };
+    var mark = function (el, tag) { if (!el) return; el.classList.add('aibox'); if (tag) el.setAttribute('data-tag', tag); };
+    T.at(500, function () { mark($('.pdate', paper), 'Date'); });
+    T.at(1100, function () { mark(cells(0)[0], 'Test'); });
+    T.at(1350, function () { mark(cells(0)[1], 'Value'); });
+    T.at(1600, function () { mark(cells(0)[2], 'Unit'); });
+    T.at(2100, function () { cells(1).forEach(function (c) { mark(c); }); });
+
+    var body = $('#xtBody', stage);
+    var t = 2700;
+    EX.forEach(function (e, i) {
+      T.at(t + i * 200, function () {
+        var p = PAPER[e.p];
+        var sure = e.unsure ? '<span class="badge b-check">' + ICON.warn + ' To confirm</span>' : '<span class="badge b-ok">Yes</span>';
+        body.insertAdjacentHTML('beforeend',
+          '<tr class="new' + (e.now ? ' now' : '') + '"><td>' + e.what + '</td><td class="val" id="xv' + i + '">' + e.raw + '</td><td class="d">' + p.short + '<span class="sub">' + p.date + '</span></td><td>' + sure + '</td></tr>');
+        var sc = body.parentNode.parentNode; sc.scrollTop = sc.scrollHeight;
+      });
+    });
+    var t2 = t + EX.length * 200 + 500;
+    var apply = function (kind) {
+      EX.forEach(function (e, i) {
+        if (e.fix !== kind) return;
+        var c = $('#xv' + i, stage); if (!c) return;
+        c.innerHTML = e.clean + '<span class="sub">' + e.sub + '</span>';
+        c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash');
+      });
+    };
+    T.at(t2, function () { $('#fixUnit', stage).classList.add('in'); apply('unit'); });
+    T.at(t2 + 900, function () { $('#fixName', stage).classList.add('in'); apply('name'); });
+    T.at(t2 + 1800, function () { $('#fixUnsure', stage).classList.add('in'); });
+    T.at(t2 + 2500, function () { $('#tally', stage).innerHTML = '7 papers → <span>11 test results</span>, <span>3 medicine entries</span>, <span>1 item to confirm</span>'; });
+  }
+
+  /* ---------- scene 5 ---------- */
+  function renderInterview(stage) {
+    stage.innerHTML =
+      '<div class="with-side">' +
+        '<div class="tablet"><div class="screen">' + kbar('हिन्दी') +
+          '<div class="kbody chat-body">' +
+            '<div class="chat" id="chat"></div>' +
+            '<div class="mic" id="mic" data-state="off"><span class="mic-ic">' + ICON.mic + '</span><span id="micText">Starting the interview</span></div>' +
+          '</div></div></div>' +
+        '<aside class="side">' +
+          '<h4>The fixed question list</h4>' +
+          '<ol class="qlist" id="qlist">' + QA.map(function (q, i) { return '<li data-i="' + i + '"><span class="qn">' + (i + 1) + '</span>' + q.topic + '</li>'; }).join('') + '</ol>' +
+          '<label class="toggle" for="enToggle"><input type="checkbox" id="enToggle" checked> Show English translation</label>' +
+          '<p class="tiny">Every patient gets the same questions. The AI may reword one to make it clearer, but it cannot add medical questions or give advice.</p>' +
+        '</aside>' +
+      '</div>';
+
+    var chat = $('#chat', stage);
+    $('#enToggle', stage).addEventListener('change', function (e) { chat.classList.toggle('no-en', !e.target.checked); });
+    var add = function (html) { chat.insertAdjacentHTML('beforeend', html); chat.scrollTop = chat.scrollHeight; };
+    var mic = function (txt, s) { $('#micText', stage).textContent = txt; $('#mic', stage).setAttribute('data-state', s); };
+    var setQ = function (i, cls) { $$('#qlist li', stage).forEach(function (li, j) { if (j === i) { li.classList.remove('now'); li.classList.add(cls); } else if (cls === 'now') { li.classList.remove('now'); } }); };
+
+    var t = 300;
+    QA.forEach(function (q, i) {
+      T.at(t, function () { add('<div class="msg k"><p class="hi">' + q.qh + '</p><p class="en">' + q.qe + '</p></div>'); setQ(i, 'now'); mic('Listening… he can speak or tap', 'on'); });
+      T.at(t + 1100, function () { add('<div class="msg p" id="pm' + i + '"><span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span class="sr">Ramesh ji is speaking</span></div>'); });
+      T.at(t + 2300, function () { var m = $('#pm' + i, stage); if (m) m.innerHTML = '<p class="hi">' + q.ah + '</p><p class="en">' + q.ae + '</p>'; mic('Heard his answer', 'off'); chat.scrollTop = chat.scrollHeight; });
+      if (q.ch) {
+        T.at(t + 2900, function () {
+          add('<div class="confirm" id="cf' + i + '"><p class="hi">' + q.ch + '</p><p class="en">' + q.ce + '</p><p class="cq"><span class="hi">क्या यह सही है?</span> · Is this right?</p>' +
+              '<div class="cbtns"><span class="cbtn yes"><span class="hi">हाँ, सही है</span> · Yes</span><span class="cbtn"><span class="hi">बदलें</span> · Change</span></div></div>');
+        });
+        T.at(t + 3900, function () {
+          var c = $('#cf' + i, stage); if (c) { c.classList.add('ok'); var y = $('.yes', c); y.classList.add('pressed'); y.innerHTML = ICON.check + ' Confirmed'; }
+          setQ(i, 'done');
+        });
+        t += 4500;
+      } else {
+        T.at(t + 2800, function () { setQ(i, 'done'); });
+        t += 3200;
+      }
+    });
+    T.at(t, function () {
+      add('<div class="msg k end"><p class="hi">धन्यवाद, रमेश जी! आपकी जानकारी डॉक्टर तक पहुँच गई है। कृपया अपनी बारी का इंतज़ार करें।</p><p class="en">Thank you, Ramesh ji! Your information has reached the doctor. Please wait for your turn.</p></div>');
+      mic('Interview finished', 'off');
+    });
+  }
+
+  /* ---------- scene 6 ---------- */
+  function renderRules(stage) {
+    stage.innerHTML =
+      '<div class="rules-scene">' +
+        '<div class="rules-top"><p class="cap">9 fixed rules run on his papers and answers</p><p class="rules-sum" id="rulesSum" aria-live="polite"></p></div>' +
+        '<div class="rules-grid">' + RULES.map(function (r, i) {
+          return '<div class="rule" id="rule' + i + '" data-state="wait"><p class="rname">' + r.name + '</p><p class="rq">' + r.q + '</p><p><span class="badge b-wait" id="rb' + i + '">Waiting</span></p><p class="rev" id="rv' + i + '"></p></div>';
+        }).join('') + '</div>' +
+        '<div class="rules-bottom">' +
+          '<div class="codebox"><p class="cap">One rule, as it is written in code</p>' +
+            '<pre class="code"><span class="cm"># Is the kidney test up to date?</span>\nlast = latest_date(<span class="str">"creatinine"</span>, <span class="str">"urine albumin"</span>)\n<span class="kw">if</span> months_between(last, today) &gt; <span class="num">12</span>:\n    flag(<span class="str">"MISSING"</span>, <span class="str">"Kidney test overdue"</span>, source=last)</pre>' +
+            '<p class="small">No AI here. The same answers always give the same flags, and a doctor can read and approve every rule.</p></div>' +
+          '<div class="patient-sees"><p class="cap">Meanwhile, on Ramesh ji\'s screen</p>' +
+            '<div class="mini-screen"><div><p class="hi">धन्यवाद! कृपया अपनी बारी का इंतज़ार करें।</p><p class="en">Thank you! Please wait for your turn.</p></div></div>' +
+            '<p class="small">He is not shown any flags or medical conclusions. If he had reported chest pain, clinic staff would get an alert straight away.</p></div>' +
+        '</div>' +
+      '</div>';
+    var t = 400;
+    RULES.forEach(function (r, i) {
+      T.at(t + i * 650, function () { var c = $('#rule' + i, stage); c.setAttribute('data-state', 'run'); var b = $('#rb' + i, stage); b.className = 'badge b-run'; b.textContent = 'Checking…'; });
+      T.at(t + i * 650 + 420, function () {
+        var c = $('#rule' + i, stage); c.setAttribute('data-state', r.res);
+        var b = $('#rb' + i, stage); b.className = 'badge ' + RES[r.res][0]; b.textContent = RES[r.res][1];
+        $('#rv' + i, stage).textContent = r.ev;
+      });
+    });
+    T.at(t + RULES.length * 650 + 300, function () {
+      $('#rulesSum', stage).textContent = '1 for the doctor to review · 2 missing tests · 2 to confirm · 2 notes · 2 all good';
+    });
+  }
+
+  /* ---------- scene 7 ---------- */
+  function renderTimeline(stage) {
+    stage.innerHTML =
+      '<div class="tl">' +
+        '<p class="cap">Every number from all 7 papers, lined up by date</p>' +
+        '<div class="tl-scroll"><svg id="tlSvg" viewBox="0 0 800 532" role="img" aria-label="Timeline from 2023 to 2026: HbA1c rose from 7.2 to 8.9 percent, fasting sugar from 142 to 176 mg/dL, kidney and cholesterol tests overdue"></svg></div>' +
+        '<div class="tl-notes">' +
+          '<div class="tl-note rv"><b>The trend</b>HbA1c was 7.2% in Feb 2023 and 8.9% in Aug 2026.</div>' +
+          '<div class="tl-note rv"><b>The gap</b>No HbA1c in his papers between Jun 2024 and Aug 2026.</div>' +
+          '<div class="tl-note rv"><b>Overdue</b>Kidney test (last Aug 2025) and cholesterol test (last Jun 2024).</div>' +
+        '</div>' +
+      '</div>';
+
+    var X0 = 120, X1 = 770, D0 = Date.UTC(2023, 0, 1), D1 = Date.UTC(2026, 11, 31);
+    var x = function (iso) { var a = iso.split('-').map(Number); return X0 + (Date.UTC(a[0], a[1] - 1, a[2]) - D0) / (D1 - D0) * (X1 - X0); };
+    var yA = function (v) { return 190 - (v - 6) / 4 * 150; };
+    var yB = function (v) { return 330 - (v - 100) / 100 * 90; };
+    var f = function (n) { return Math.round(n * 10) / 10; };
+    var s = '<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect class="hatch-bg" width="6" height="6"/><line class="hatch-ln" x1="0" y1="0" x2="0" y2="6"/></pattern></defs>';
+    [2023, 2024, 2025, 2026].forEach(function (yr) {
+      var xs = x(yr + '-01-01');
+      s += '<line class="g-year" x1="' + f(xs) + '" y1="34" x2="' + f(xs) + '" y2="498"/>';
+      s += '<text class="t-axis" x="' + f(x(yr + '-07-02')) + '" y="520" text-anchor="middle">' + yr + '</text>';
+    });
+    s += '<line class="g-year" x1="' + X1 + '" y1="34" x2="' + X1 + '" y2="498"/>';
+    s += '<text class="t-title" x="' + X0 + '" y="22">HbA1c (%) · average sugar over about 3 months</text>';
+    [6, 7, 8, 9, 10].forEach(function (v) { s += '<line class="g-line" x1="' + X0 + '" y1="' + yA(v) + '" x2="' + X1 + '" y2="' + yA(v) + '"/><text class="t-tick" x="112" y="' + (yA(v) + 4) + '" text-anchor="end">' + v + '%</text>'; });
+    s += '<text class="t-title" x="' + X0 + '" y="228">Fasting sugar (mg/dL)</text>';
+    [100, 150, 200].forEach(function (v) { s += '<line class="g-line" x1="' + X0 + '" y1="' + yB(v) + '" x2="' + X1 + '" y2="' + yB(v) + '"/><text class="t-tick" x="112" y="' + (yB(v) + 4) + '" text-anchor="end">' + v + '</text>'; });
+    s += '<line class="g-line" x1="8" y1="352" x2="' + X1 + '" y2="352"/>';
+    s += '<text class="t-lane" x="8" y="393">Medicines</text><text class="t-lane" x="8" y="449">Kidney tests</text><text class="t-lane" x="8" y="487">Cholesterol</text>';
+    s += '<line class="g-axis" x1="' + X0 + '" y1="498" x2="' + X1 + '" y2="498"/>';
+
+    var A = [['2023-02-14', 7.2, 'Sunrise'], ['2023-09-09', 7.6, 'Valley'], ['2024-06-18', 8.3, 'Sunrise'], ['2026-08-12', 8.9, 'Valley']];
+    var step = 1;
+    A.forEach(function (d, i) {
+      var px = f(x(d[0])), py = f(yA(d[1]));
+      var seg = '';
+      if (i > 0) { var q = A[i - 1]; seg = '<line class="' + (i === 3 ? 'l-a-gap' : 'l-a') + '" x1="' + f(x(q[0])) + '" y1="' + f(yA(q[1])) + '" x2="' + px + '" y2="' + py + '"/>'; }
+      s += '<g class="tl-item" data-step="' + (step++) + '">' + seg + '<circle class="p-a" cx="' + px + '" cy="' + py + '" r="6"/><text class="t-val" x="' + px + '" y="' + (py - 12) + '" text-anchor="middle">' + d[1] + '</text><text class="t-src" x="' + px + '" y="' + (py + 20) + '" text-anchor="middle">' + d[2] + '</text></g>';
+    });
+    s += '<g class="tl-item" data-step="' + (step++) + '"><text class="t-note" x="' + f((x('2024-06-18') + x('2026-08-12')) / 2) + '" y="60" text-anchor="middle">No HbA1c in his papers from Jun 2024 to Aug 2026</text></g>';
+    var B = [['2023-02-14', 142], ['2023-09-09', 160, true], ['2026-08-12', 176]];
+    B.forEach(function (d, i) {
+      var px = f(x(d[0])), py = f(yB(d[1]));
+      var seg = '';
+      if (i > 0) { var q = B[i - 1]; seg = '<line class="' + (i === 2 ? 'l-b-gap' : 'l-b') + '" x1="' + f(x(q[0])) + '" y1="' + f(yB(q[1])) + '" x2="' + px + '" y2="' + py + '"/>'; }
+      var extra = d[2] ? '<circle class="ring" cx="' + px + '" cy="' + py + '" r="11"/><text class="t-conv" x="' + (px + 16) + '" y="' + (py + 20) + '">converted from 8.9 mmol/L</text>' : '';
+      s += '<g class="tl-item" data-step="' + (step++) + '">' + seg + '<circle class="p-b" cx="' + px + '" cy="' + py + '" r="5.5"/><text class="t-val" x="' + px + '" y="' + (py - 11) + '" text-anchor="middle">' + d[1] + '</text>' + extra + '</g>';
+    });
+    var today = f(x('2026-10-14'));
+    var m1 = f(x('2023-02-20')), m2 = f(x('2024-07-02'));
+    s += '<g class="tl-item" data-step="' + (step++) + '"><rect class="bar-ok" x="' + m1 + '" y="368" width="' + f(today - m1) + '" height="18" rx="4"/><text class="t-bar" x="' + (m1 + 8) + '" y="381">Metformin 500 mg (Glycomet) · 1-0-1 · he confirmed it today</text>' +
+         '<rect class="bar-q" x="' + m2 + '" y="393" width="' + f(today - m2) + '" height="18" rx="4"/><text class="t-bar" x="' + (m2 + 8) + '" y="406">Glimepiride (Amaryl) · not mentioned today</text></g>';
+    var k1 = f(x('2024-06-18')), k2 = f(x('2025-08-21'));
+    s += '<g class="tl-item" data-step="' + (step++) + '"><circle class="p-k" cx="' + k1 + '" cy="445" r="6"/><text class="t-val" x="' + k1 + '" y="432" text-anchor="middle">Creatinine 1.1</text><circle class="p-k" cx="' + k2 + '" cy="445" r="6"/><text class="t-val" x="' + k2 + '" y="432" text-anchor="middle">Creatinine 1.2 · ACR 24</text></g>';
+    s += '<g class="tl-item" data-step="' + (step++) + '"><circle class="p-k" cx="' + k1 + '" cy="483" r="6"/><text class="t-val" x="' + (k1 - 10) + '" y="487" text-anchor="end">LDL 128</text></g>';
+    var z1 = f(x('2026-08-21')), z2 = f(x('2025-06-18'));
+    s += '<g class="tl-item" data-step="' + (step++) + '"><rect class="zone" x="' + z1 + '" y="438" width="' + f(today - z1) + '" height="14"/><text class="t-note" x="' + (z1 - 8) + '" y="449" text-anchor="end">Due since Aug 2026</text>' +
+         '<rect class="zone" x="' + z2 + '" y="476" width="' + f(today - z2) + '" height="14"/><text class="t-note" x="' + (z2 + 6) + '" y="471">Due since Jun 2025</text></g>';
+    s += '<g class="tl-item" data-step="' + (step++) + '"><line class="today" x1="' + today + '" y1="34" x2="' + today + '" y2="498"/><text class="t-today" x="' + (today - 4) + '" y="32" text-anchor="end">Today · 14 Oct 2026</text></g>';
+    var svg = $('#tlSvg', stage);
+    svg.innerHTML = s;
+    for (var k = 1; k < step; k++) {
+      (function (kk) { T.at(300 + kk * 550, function () { $$('[data-step="' + kk + '"]', svg).forEach(function (g) { g.classList.add('in'); }); }); })(k);
+    }
+    reveal(stage, 400, 300 + step * 550);
+  }
+
+  /* ---------- scene 8 ---------- */
+  function sparkSVG() {
+    var pts = [['2023-02-14', 7.2], ['2023-09-09', 7.6], ['2024-06-18', 8.3], ['2026-08-12', 8.9]];
+    var D0 = Date.UTC(2023, 0, 1), D1 = Date.UTC(2026, 11, 31);
+    var x = function (iso) { var a = iso.split('-').map(Number); return 10 + (Date.UTC(a[0], a[1] - 1, a[2]) - D0) / (D1 - D0) * 230; };
+    var y = function (v) { return 54 - (v - 6) / 4 * 44; };
+    var poly = pts.map(function (p) { return x(p[0]).toFixed(1) + ',' + y(p[1]).toFixed(1); }).join(' ');
+    var dots = pts.map(function (p) { return '<circle class="sp" cx="' + x(p[0]).toFixed(1) + '" cy="' + y(p[1]).toFixed(1) + '" r="3"/>'; }).join('');
+    var last = pts[3];
+    return '<svg class="spark" viewBox="0 0 290 72" role="img" aria-label="HbA1c 7.2, 7.6, 8.3 and 8.9 percent from 2023 to 2026"><polyline class="sl" points="' + poly + '"/>' + dots +
+      '<text class="st" x="' + (x(pts[0][0]) - 2) + '" y="' + (y(pts[0][1]) - 7) + '">7.2</text><text class="st" x="' + (x(last[0]) + 6) + '" y="' + (y(last[1]) + 4) + '">8.9%</text>' +
+      '<text class="sx" x="10" y="70">2023</text><text class="sx" x="240" y="70" text-anchor="end">2026</text></svg>';
+  }
+  function renderDash(stage) {
+    var src = function (code, label, cls) { return '<button type="button" class="srcval ' + (cls || '') + '" data-src="' + code + '" title="See where this came from">' + label + '<span class="src-ic">' + ICON.doc + '</span></button>'; };
+    stage.innerHTML =
+      '<div class="dash-wrap">' +
+        '<p class="cap">On the doctor\'s computer in the consultation room</p>' +
+        '<div class="laptop"><div class="dash">' +
+          '<div class="dash-top rv">' +
+            '<div class="dt-left"><div class="avatar pat" aria-hidden="true">RK</div><div><p class="dt-name">Ramesh Kumar<span>58 · M · Token 47</span></p><p class="dt-sub">Type 2 diabetes for about 10 years (he said) · Hindi · Intake finished 10:42 · 7 papers</p></div></div>' +
+            '<button type="button" class="btn sm" id="reviewBtn">Mark as reviewed</button>' +
+          '</div>' +
+          '<p class="dash-banner rv">Prepared for the doctor to review. Not a diagnosis. Click any value with a page icon to see where it came from.</p>' +
+          '<div class="dash-grid">' +
+            '<section class="dcard rv"><h5>Needs attention</h5><ul class="flags">' +
+              '<li><span class="badge b-flag">Doctor to review</span><p>Shaky, sweaty spells 2–3 times last month, in the evening ' + src('q:3', 'his words') + '</p></li>' +
+              '<li><span class="badge b-check">To confirm</span><p>Amaryl (glimepiride) is on the Jul 2024 prescription, but he did not mention it today ' + src('p:p5:1', 'prescription') + '</p></li>' +
+              '<li><span class="badge b-check">To confirm</span><p>Amaryl dose is unclear on the paper: 1 mg or 2 mg ' + src('p:p5:1', 'photo') + '</p></li>' +
+              '<li><span class="badge b-missing">Missing</span><p>Kidney test overdue. Last one 21 Aug 2025 ' + src('p:p6:0', 'report') + '</p></li>' +
+              '<li><span class="badge b-missing">Missing</span><p>Cholesterol test overdue. Last one 18 Jun 2024 ' + src('p:p4:2', 'report') + '</p></li>' +
+              '<li><span class="badge b-note">Note</span><p>Misses the night tablet 2–3 times a week ' + src('q:2', 'his words') + '</p></li>' +
+              '<li><span class="badge b-note">Note</span><p>Tingling in his feet sometimes ' + src('q:4', 'his words') + '</p></li>' +
+            '</ul></section>' +
+            '<section class="dcard rv"><h5>Latest results</h5>' +
+              '<table class="lr"><tbody>' +
+                '<tr><th scope="row">HbA1c</th><td>' + src('p:p7:0', '8.9 %', 'first-src') + '</td><td class="d">12 Aug 2026</td></tr>' +
+                '<tr><th scope="row">Fasting sugar</th><td>' + src('p:p7:1', '176 mg/dL') + '</td><td class="d">12 Aug 2026</td></tr>' +
+                '<tr><th scope="row">Creatinine</th><td>' + src('p:p6:0', '1.2 mg/dL') + '</td><td class="d">21 Aug 2025</td></tr>' +
+                '<tr><th scope="row">Urine albumin / creatinine</th><td>' + src('p:p6:1', '24 mg/g') + '</td><td class="d">21 Aug 2025</td></tr>' +
+                '<tr><th scope="row">LDL cholesterol</th><td>' + src('p:p4:2', '128 mg/dL') + '</td><td class="d">18 Jun 2024</td></tr>' +
+              '</tbody></table>' +
+              '<div class="spark-wrap"><p class="spark-cap">HbA1c over time</p>' + sparkSVG() + '</div>' +
+            '</section>' +
+            '<section class="dcard rv"><h5>Medicines</h5><ul class="meds">' +
+              '<li><p class="med-name">Metformin 500 mg <span>(Glycomet 500)</span></p><p class="med-dose">1-0-1 · morning and night ' + src('p:p5:0', 'prescription') + '</p><p class="med-state ok">' + ICON.check + '<span>He confirmed he takes it. Misses the night dose 2–3 times a week.</span></p></li>' +
+              '<li><p class="med-name">Glimepiride ? mg <span>(Amaryl)</span></p><p class="med-dose">1-0-0 · morning ' + src('p:p5:1', 'prescription') + '</p><p class="med-state warn">' + ICON.warn + '<span>He did not mention it today. Dose unclear on the paper.</span></p></li>' +
+            '</ul></section>' +
+            '<section class="dcard rv"><h5>In his own words</h5><ul class="quotes">' +
+              [3, 2, 4].map(function (i) { return '<li><p class="hi">“' + QA[i].ah + '”</p><p class="en">' + QA[i].ae + '</p></li>'; }).join('') +
+            '</ul></section>' +
+          '</div>' +
+          '<section class="dcard rv"><div class="sum-head"><h5>Summary</h5><button type="button" class="btn sm" id="editBtn">Edit</button></div>' +
+            '<p class="sum" id="sumText">Ramesh Kumar, 58, has had type 2 diabetes for about 10 years (he said). He takes Glycomet 500 (metformin) morning and night and misses the night tablet 2–3 times a week. He reports shaky, sweaty spells 2–3 times last month, in the evening, and tingling in his feet. HbA1c was 7.2% in Feb 2023 and 8.9% in Aug 2026. His last kidney test was in Aug 2025 and his last cholesterol test in Jun 2024. A Jul 2024 prescription lists Amaryl (glimepiride), which he did not mention today; the dose on it is unclear.</p>' +
+            '<p class="sum-note" id="sumNote">Draft written by the AI from the facts above only. The doctor can change any word.</p>' +
+          '</section>' +
+        '</div></div>' +
+        '<p class="try"><b>Try it:</b> click a value like 8.9 %, or press Edit on the summary.</p>' +
+      '</div>';
+
+    var rb = $('#reviewBtn', stage);
+    rb.addEventListener('click', function () {
+      var on = !rb.classList.contains('done');
+      rb.classList.toggle('done', on);
+      rb.innerHTML = on ? ICON.check + ' Reviewed' : 'Mark as reviewed';
+    });
+    var eb = $('#editBtn', stage), st = $('#sumText', stage), note = $('#sumNote', stage);
+    eb.addEventListener('click', function () {
+      var editing = st.getAttribute('contenteditable') === 'true';
+      if (!editing) {
+        st.setAttribute('contenteditable', 'true'); eb.textContent = 'Save'; st.focus();
+        note.className = 'sum-note'; note.textContent = 'Editing. Type anything, then press Save.';
+      } else {
+        st.setAttribute('contenteditable', 'false'); eb.textContent = 'Edit';
+        note.className = 'sum-note edited'; note.textContent = 'Edited by the doctor. This version is the one that is kept.';
+      }
+    });
+    reveal(stage, 170, 150);
+    T.at(1700, function () { var b = $('.first-src', stage); if (b) b.classList.add('pulse'); });
+  }
+
+  /* ---------- scene 9 ---------- */
+  function renderDecide(stage) {
+    var ln = function (w, text, act) { return '<div class="ln rv"><span class="who-s ' + w + '" aria-hidden="true">' + (w === 'd' ? 'Dr' : 'RK') + '</span><p><span class="sr">' + (w === 'd' ? 'Doctor: ' : 'Ramesh ji: ') + '</span>' + text + (act ? ' <span class="act">' + act + '</span>' : '') + '</p></div>'; };
+    stage.innerHTML =
+      '<div class="decide">' +
+        '<div class="compare">' +
+          '<section class="cmp before"><h4>Without MediKiosk-DM</h4><p class="cmp-sub">The first minutes of the visit</p><div class="talk">' +
+            ln('d', '“Ramesh ji, which one is your latest sugar report?”') +
+            ln('p', '“It is in here somewhere… this one?”', '(searches the bag)') +
+            ln('d', '“This one is from 2023. Do you have a newer one?”') +
+            ln('p', '“Maybe in the other packet…”') +
+            ln('d', '“And which tablets are you taking now?”') +
+            ln('p', '“The white one, morning and night. And maybe a small one…”') +
+          '</div><p class="cmp-out rv">Time goes into searching. The overdue tests and the Amaryl question are easy to miss.</p></section>' +
+          '<section class="cmp after"><h4>With MediKiosk-DM</h4><p class="cmp-sub">The first minutes of the visit</p><div class="talk">' +
+            ln('d', '“Ramesh ji, your HbA1c in August was 8.9. You told the kiosk about shaky, sweaty spells in the evening. Tell me more about those.”', '(reading the one-page summary)') +
+            ln('p', '“Yes, two or three times last month.”') +
+            ln('d', '“A 2024 prescription lists Amaryl. Are you still taking it?”') +
+            ln('p', '“Yes, the small tablet in the morning.”') +
+            ln('d', '“Your kidney and cholesterol tests are also due. Let us talk about those.”') +
+          '</div><p class="cmp-out rv">The visit starts with what matters. The doctor still asks, checks and decides.</p></section>' +
+        '</div>' +
+        '<div class="never rv"><h4>What MediKiosk-DM never does</h4><ul>' +
+          '<li>' + ICON.x + ' Never diagnoses</li><li>' + ICON.x + ' Never starts, stops or changes a medicine</li><li>' + ICON.x + ' Never gives treatment advice</li>' +
+        '</ul><p>It prepares the information. Every medical decision stays with the doctor.</p></div>' +
+      '</div>';
+    reveal(stage, 520, 200);
+  }
+
+  /* ---------- scene 10 ---------- */
+  function renderJourney(stage) {
+    var node = function (n, role, label, title, text) { return '<div class="node rv"><span class="nn">' + n + '</span>' + roleChip(role, label) + '<h5>' + title + '</h5><p>' + text + '</p></div>'; };
+    var arrow = '<span class="arrow rv">' + ICON.arrow + '</span>';
+    stage.innerHTML =
+      '<div class="journey">' +
+        '<div class="sdg rv"><b>SDG 3</b><span>Built for UN Sustainable Development Goal 3: Good Health and Well-being.</span></div>' +
+        '<div class="pipe">' +
+          node('1', 'patient', null, 'Shares papers and answers', 'Photos of old reports, and a short interview in Hindi or English.') + arrow +
+          node('2', 'ai', null, 'Reads and listens', 'Finds values, units and dates on each photo, and turns speech into text.') + arrow +
+          node('3', 'code', 'Plain code', 'Tidies and checks', 'Converts units, names medicines, runs the safety rules, builds the timeline.') + arrow +
+          node('4', 'ai', null, 'Drafts one page', 'A summary from the saved facts only, with a source link on every fact.') + arrow +
+          node('5', 'doctor', null, 'Checks and decides', 'Reviews, edits and makes every medical decision.') +
+        '</div>' +
+        '<div class="jcards">' +
+          '<div class="jcard rv"><h4>Who does what</h4><div class="wtable-wrap"><table class="wtable"><thead><tr><th>Who</th><th>Does</th><th>Never does</th></tr></thead><tbody>' +
+            '<tr><th scope="row">AI</th><td>Reads photos, turns speech into text, drafts the summary</td><td>Decide what is urgent, or give advice</td></tr>' +
+            '<tr><th scope="row">Plain code</th><td>Converts units, maps medicine names, runs the rules, builds the timeline</td><td>Guess. Same input, same output.</td></tr>' +
+            '<tr><th scope="row">Doctor</th><td>Reviews, edits and decides</td><td>Hunt through a bag of papers</td></tr>' +
+          '</tbody></table></div></div>' +
+          '<div class="jcard rv"><h4>How we will prove it works</h4><ul>' +
+            '<li><b>Accuracy test:</b> 25–30 made-up reports, including blurred and tilted photos. We count how many values the AI reads correctly, and list every miss.</li>' +
+            '<li><b>Time study:</b> doctors review the same made-up patient from a paper stack and from our summary. We record minutes taken and missing items caught.</li>' +
+          '</ul></div>' +
+          '<div class="jcard rv"><h4>Privacy and safety</h4><ul>' +
+            '<li>The prototype uses made-up data only.</li>' +
+            '<li>Real use would need consent in the patient\'s language, as India\'s DPDP Act 2023 requires.</li>' +
+            '<li>Every value shows its source, and unclear items are marked, not guessed.</li>' +
+          '</ul></div>' +
+          '<div class="jcard rv"><h4>Built with (planned, open-source)</h4><ul>' +
+            '<li><b>Speech:</b> Whisper or AI4Bharat Indian-language models</li>' +
+            '<li><b>Reading reports:</b> PaddleOCR and an open vision-language model</li>' +
+            '<li><b>App:</b> React, FastAPI, PostgreSQL</li>' +
+          '</ul></div>' +
+        '</div>' +
+      '</div>';
+    reveal(stage, 180, 150);
+  }
+
+  /* ---------- scenes ---------- */
+  var SCENES = [
+    { key: 'meet', short: 'Meet Ramesh ji', title: 'Meet Ramesh ji and his bag of papers', who: ['patient'], render: renderMeet,
+      eli5: 'Ramesh ji has had diabetes for about 10 years. Every few months he sees a doctor, and every visit adds more papers to his bag.',
+      points: ['He has seen <b>2 doctors</b> before today and used <b>3 different labs</b>.', 'One lab writes sugar in <b>mmol/L</b>, the others in <b>mg/dL</b>. Same test, different-looking numbers.', 'Today\'s doctor has a full waiting room and only a few minutes for him.', 'Finding his newest results and current tablets in this pile takes time, and things get missed.'],
+      behind: '<p>This is a common picture in India. In a study of chronic-disease outpatients in Kerala and Himachal Pradesh, only 24% of the documents patients received at clinics held the diagnosis, medicines, long-term care and follow-up plan (PLoS ONE, 2018). India has an estimated 101 million people with diabetes (ICMR-INDIAB, 2023).</p><p>Ramesh ji, the labs, the doctors and every value in this simulation are made up.</p>' },
+    { key: 'checkin', short: 'Check in', title: 'He checks in at the kiosk', who: ['patient'], render: renderCheckin,
+      eli5: 'While he waits for his turn, Ramesh ji uses a simple screen in the waiting room. It speaks his language.',
+      points: ['A kiosk is just a tablet on a stand. He can also scan a QR code and use his own phone.', 'He taps <b>हिन्दी</b>. Big buttons, few words.', 'The screen tells him what will happen and who will see his answers.', 'If screens are hard for him, a clinic helper sits with him.'],
+      behind: '<p>His name and token number come from the clinic\'s registration desk, so he does not have to type anything to start.</p><p>For the prototype the kiosk is a web page, so it runs on any tablet, phone or laptop. Hindi and English come first. More Indian languages can be added later.</p>' },
+    { key: 'photos', short: 'Show papers', title: 'He shows his papers to the camera', who: ['patient'], render: renderPhotos,
+      eli5: 'He holds each paper up to the camera, like taking a photo. The app checks that every photo is clear enough to read.',
+      points: ['One paper at a time. The app counts them for him.', 'A blurry photo is caught straight away, and he is asked to take it again.', 'Nothing is thrown away. The photos are kept so the doctor can see the original later.'],
+      behind: '<p>Before a photo is accepted, a quick check looks at sharpness, light and whether the whole page is in the frame. It is better to catch a bad photo now than after the patient has gone home.</p><p>The prototype only uses made-up reports, never real patient papers.</p>' },
+    { key: 'read', short: 'AI reads', title: 'The AI reads every paper', who: ['ai', 'code'], render: renderRead,
+      eli5: 'The AI reads each photo like a careful assistant. It finds the test name, the number, the unit and the date, and writes them neatly in a table.',
+      points: ['It remembers exactly where on the paper each number came from.', 'Then plain code tidies up. It turns mmol/L into mg/dL and brand names into medicine names.', 'If something is hard to read, it says so. It does not guess.', '7 papers become <b>11 test results</b>, <b>3 medicine entries</b> and <b>1 item to confirm</b>.'],
+      behind: '<p><b>AI part:</b> text recognition (OCR) plus a vision-language model that understands how a report is laid out. Planned open-source tools: PaddleOCR and an open vision model.</p><p><b>Plain-code part:</b> unit conversion and brand-to-medicine names come from fixed lookup tables. For glucose, 1 mmol/L is about 18 mg/dL, so 8.9 mmol/L becomes 160 mg/dL.</p><p>Each value is saved with its paper and its position on the photo. That is what makes “click to see the source” possible later.</p>' },
+    { key: 'interview', short: 'Interview', title: 'A friendly interview in Hindi', who: ['patient', 'ai'], render: renderInterview,
+      eli5: 'The kiosk asks a few simple questions, like a nurse would. Ramesh ji answers by speaking. After each answer, the screen shows what it understood, and he says yes or fixes it.',
+      points: ['The questions come from a fixed list, so every patient gets the same careful set.', 'It asks about years with diabetes, medicines, missed doses, shaky or sweaty spells, and feet and eyes.', 'He can speak or tap. Every answer is confirmed on screen.', 'The kiosk never gives medical advice. It only collects his story.'],
+      behind: '<p><b>Speech to text:</b> his voice becomes text (planned: Whisper or AI4Bharat\'s Indian-language speech models). Speech tools can mishear, which is why every answer is shown back for a yes or a fix.</p><p><b>Short notes:</b> the AI turns each answer into a short fact, such as “Night tablet: missed 2–3 times a week”.</p>' },
+    { key: 'rules', short: 'Safety rules', title: 'Fixed rules check for safety', who: ['code'], render: renderRules,
+      eli5: 'Next, a checklist runs, like a pilot\'s checklist before take-off. It is plain code, not AI, so the same answers always give the same result.',
+      points: ['It looks for symptoms the doctor should know about.', 'It checks which tests are missing or overdue.', 'It spots medicines that do not match between the papers and what he said.', 'Ramesh ji only sees “Thank you, please wait”. Flags go to the clinic, not to him.'],
+      behind: '<p>All the rules live in one short, readable file that a doctor reviews and approves. The rules and time limits shown here are drafts for the prototype.</p><p>If a patient reports something urgent, such as chest pain or fainting, the rule alerts clinic staff straight away instead of waiting for the summary.</p>' },
+    { key: 'timeline', short: 'Timeline', title: 'Everything goes on one timeline', who: ['code'], render: renderTimeline,
+      eli5: 'All the numbers from all the papers are lined up by date on one chart. Now the story of his sugar over the years can be seen at a glance.',
+      points: ['HbA1c is his average sugar over about 3 months. Each point is labelled with its lab.', 'The converted value is marked, so nobody is confused by units.', 'Medicines, kidney tests and cholesterol tests sit on the same time line.', 'Gaps stand out: no HbA1c between Jun 2024 and Aug 2026, and two tests overdue.'],
+      behind: '<p>The timeline is drawn by plain code from the saved values only. It shows numbers and dates. It does not label anything as good or bad, because that is the doctor\'s job.</p>' },
+    { key: 'dash', short: 'Doctor\'s page', title: 'The doctor opens one page', who: ['ai', 'doctor'], render: renderDash,
+      eli5: 'When Ramesh ji walks in, the doctor already has a one-page summary. Anything that needs attention is at the top.',
+      points: ['Flags first, then results, medicines and his own words.', '<b>Try it:</b> click any value with a page icon to see the exact line on the original paper.', '<b>Try it:</b> press Edit. The doctor can change anything.', 'Unclear items are marked, never hidden.'],
+      behind: '<p>The written summary is drafted by the AI using only the saved facts, and every fact links back to a paper or an interview answer. The doctor\'s edited version is the one that is kept.</p>' },
+    { key: 'decide', short: 'Doctor decides', title: 'The doctor decides', who: ['doctor'], render: renderDecide,
+      eli5: 'The doctor spends the visit on what matters, not on hunting through papers. Every medical decision stays with the doctor.',
+      points: ['The visit starts with his real concerns.', 'Important questions, like “Are you still taking Amaryl?”, come up straight away.', 'MediKiosk-DM never diagnoses, never changes medicines and never gives treatment advice.'],
+      behind: '<p>We will measure this, not assume it. In a planned time study, doctors review the same made-up patient twice: once from a paper stack and once from our summary. We record the minutes taken and how many missing items each method catches.</p>' },
+    { key: 'journey', short: 'Whole journey', title: 'The whole journey', who: ['patient', 'ai', 'code', 'doctor'], render: renderJourney,
+      eli5: 'Papers and answers go in. A checked, editable one-page summary comes out. The doctor stays in charge.',
+      points: ['<b>AI</b> reads the papers and listens to the answers.', '<b>Plain code</b> converts units, runs the safety rules and builds the timeline.', '<b>The doctor</b> checks, edits and decides.', 'Built for UN Sustainable Development Goal 3: Good Health and Well-being.'],
+      behind: '<p>Planned open-source tools: Whisper or AI4Bharat models for speech, PaddleOCR and an open vision-language model for reports, and React, FastAPI and PostgreSQL for the app. We will check each tool\'s licence before calling the build fully open source.</p>' }
+  ];
+
+  /* ---------- navigation ---------- */
+  var cur = 0, playing = false, idleSince = null, DWELL = 9000, booted = false;
+  var stage = $('#stage');
+
+  $('#rail').innerHTML = SCENES.map(function (s, i) {
+    return '<li><button type="button" data-i="' + i + '"><span class="rn">' + (i + 1) + '</span>' + s.short +
+      '<span class="rdots" aria-hidden="true">' + s.who.map(function (w) { return '<i class="d-' + w + '"></i>'; }).join('') + '</span></button></li>';
+  }).join('');
+  $$('#rail button').forEach(function (b) { b.addEventListener('click', function () { go(Number(b.dataset.i)); }); });
+
+  function go(i) {
+    i = Math.max(0, Math.min(SCENES.length - 1, i));
+    cur = i; T.clear(); closeModal(); idleSince = null;
+    var s = SCENES[i];
+    $('#nStep').textContent = 'Step ' + (i + 1) + ' of ' + SCENES.length;
+    $('#nTitle').textContent = s.title;
+    $('#nWho').innerHTML = s.who.map(function (r) { return roleChip(r); }).join('');
+    $('#nEli5').textContent = s.eli5;
+    $('#nPoints').innerHTML = s.points.map(function (p) { return '<li>' + p + '</li>'; }).join('');
+    $('#nBehindBody').innerHTML = s.behind;
+    stage.innerHTML = '';
+    stage.className = 'stage stage-' + s.key;
+    s.render(stage);
+    $$('#rail button').forEach(function (b, j) { b.setAttribute('aria-current', j === i ? 'step' : 'false'); b.classList.toggle('done', j < i); });
+    if (booted) {
+      var a = $$('#rail button')[i];
+      var rail = $('.rail');
+      if (a && rail) rail.scrollTo({ left: a.parentNode.offsetLeft - rail.clientWidth / 2 + a.offsetWidth / 2, behavior: RM ? 'auto' : 'smooth' });
+    }
+    $('#prevBtn').disabled = i === 0;
+    $('#nextBtn').disabled = i === SCENES.length - 1;
+    $('#progressFill').style.width = ((i + 1) / SCENES.length * 100) + '%';
+    try { if (booted) history.replaceState(null, '', '#step-' + (i + 1)); } catch (e) { /* hash not available here */ }
+    T.changed();
+  }
+
+  function setPlaying(on) {
+    playing = on; idleSince = null;
+    var b = $('#playBtn');
+    b.setAttribute('aria-pressed', String(on));
+    b.textContent = on ? 'Pause tour' : 'Play tour';
+  }
+  setInterval(function () {
+    if (!playing) return;
+    if (T.pending() || !$('#srcModal').hidden) { idleSince = null; return; }
+    if (idleSince === null) { idleSince = Date.now(); return; }
+    if (Date.now() - idleSince >= DWELL) {
+      if (cur < SCENES.length - 1) go(cur + 1); else setPlaying(false);
+    }
+  }, 300);
+
+  $('#prevBtn').addEventListener('click', function () { go(cur - 1); });
+  $('#nextBtn').addEventListener('click', function () { go(cur + 1); });
+  $('#replayBtn').addEventListener('click', function () { go(cur); });
+  $('#skipBtn').addEventListener('click', function () { T.skip(); });
+  $('#playBtn').addEventListener('click', function () { setPlaying(!playing); });
+
+  /* ---------- source modal ---------- */
+  var modal = $('#srcModal'), lastFocus = null;
+  function openSource(code) {
+    var parts = code.split(':'), title, body;
+    if (parts[0] === 'p') {
+      var p = PAPER[parts[1]], row = Number(parts[2]);
+      title = (p.kind === 'rx' ? 'Prescription' : 'Lab report') + ' · ' + p.org + ' · ' + p.date;
+      body = paperHTML(p, { size: 'big', hl: row }) + '<p class="m-note" style="margin-top:12px">Highlighted: the exact line this value was read from. Photo ' + (PAPERS.indexOf(p) + 1) + ' of 7.</p>';
+    } else {
+      var qi = Number(parts[1]), q = QA[qi];
+      title = 'Interview answer · question ' + (qi + 1) + ' of 6';
+      body = '<div class="m-quote"><p class="hi">“' + q.ah + '”</p><p class="en">' + q.ae + '</p></div><p class="m-note" style="margin-top:10px">The kiosk asked: “' + q.qe + '” Ramesh ji confirmed this answer on screen.</p>';
+    }
+    $('#mTitle').textContent = title;
+    $('#mBody').innerHTML = body;
+    lastFocus = document.activeElement;
+    modal.hidden = false;
+    $('#mClose').focus();
+  }
+  function closeModal() {
+    if (modal.hidden) return;
+    modal.hidden = true;
+    if (lastFocus && document.body.contains(lastFocus)) lastFocus.focus();
+  }
+  $('#mClose').addEventListener('click', closeModal);
+  modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+  stage.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-src]') : null;
+    if (b) openSource(b.getAttribute('data-src'));
+  });
+
+  /* ---------- keyboard ---------- */
+  document.addEventListener('keydown', function (e) {
+    var t = e.target, tag = (t.tagName || '').toLowerCase();
+    if (t.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    if (!modal.hidden) { if (e.key === 'Escape') { e.preventDefault(); closeModal(); } return; }
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); go(cur + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(cur - 1); }
+    else if (e.key === 'p' || e.key === 'P') { setPlaying(!playing); }
+    else if (e.key === 's' || e.key === 'S') { T.skip(); }
+    else if (e.key === 'r' || e.key === 'R') { go(cur); }
+  });
+
+  /* ---------- theme & full screen ---------- */
+  var root = document.documentElement, themeBtn = $('#themeBtn');
+  try { var saved = localStorage.getItem('mk-theme'); if (saved === 'dark' || saved === 'light') root.setAttribute('data-theme', saved); } catch (e) { /* storage unavailable */ }
+  function isDark() {
+    var a = root.getAttribute('data-theme');
+    if (a === 'dark' || a === 'light') return a === 'dark';
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  function syncTheme() { themeBtn.textContent = isDark() ? 'Light mode' : 'Dark mode'; }
+  themeBtn.addEventListener('click', function () {
+    var next = isDark() ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('mk-theme', next); } catch (e) { /* storage unavailable */ }
+    syncTheme();
+  });
+  syncTheme();
+  var fsBtn = $('#fsBtn');
+  if (!document.documentElement.requestFullscreen) { fsBtn.hidden = true; }
+  fsBtn.addEventListener('click', function () {
+    var p = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+    if (p && p.catch) p.catch(function () { fsBtn.textContent = 'Full screen blocked here'; fsBtn.disabled = true; });
+  });
+  document.addEventListener('fullscreenchange', function () { fsBtn.textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen'; });
+
+  /* ---------- start ---------- */
+  var start = 0;
+  var m = /^#step-(\d+)$/.exec(location.hash || '');
+  if (m) start = Math.max(0, Math.min(SCENES.length - 1, Number(m[1]) - 1));
+  go(start);
+  booted = true;
+})();
+</script>
+</body>
+</html>
