@@ -9,6 +9,8 @@ from typing import Any, Optional
 
 import yaml
 
+from services.trends import TEST_NAMES, baseline_shift, dated_points
+
 RESOURCES_DIR = Path(__file__).resolve().parent.parent / "resources"
 
 
@@ -88,6 +90,17 @@ def evaluate(patient_data: dict[str, Any], today: date) -> list[RuleResult]:
     kidney_max_days = int(thresholds.get("kidney_max_days", 365))
     lipid_max_days = int(thresholds.get("lipid_max_days", 365))
     rx_med_max_months = int(thresholds.get("rx_med_max_months", 24))
+
+    # Intervals the doctor set for this patient replace the draft defaults above. Nothing is set by default.
+    plan = {p["test"]: p for p in patient_data.get("plan", [])}
+
+    def planned(tests: list[str], default: int) -> tuple[int, bool]:
+        days = [plan[t]["interval_days"] for t in tests if t in plan and plan[t].get("interval_days")]
+        return (min(days), True) if days else (default, False)
+
+    hba1c_max_days, hba1c_set = planned(["hba1c"], hba1c_max_days)
+    kidney_max_days, kidney_set = planned(["creatinine", "egfr", "uacr"], kidney_max_days)
+    lipid_max_days, lipid_set = planned(["ldl", "total_cholesterol", "hdl", "triglycerides"], lipid_max_days)
 
     urgent_keywords = [str(k) for k in RULES_CONFIG.get("urgent_keywords", [])]
     low_sugar_keywords = [str(k) for k in RULES_CONFIG.get("low_sugar_keywords", [])]
@@ -243,5 +256,37 @@ def evaluate(patient_data: dict[str, Any], today: date) -> list[RuleResult]:
         results.append(RuleResult("unclear_readings", "Unclear readings", "Did the AI mark anything as unsure?", "check", "; ".join(parts), refs))
     else:
         results.append(RuleResult("unclear_readings", "Unclear readings", "Did the AI mark anything as unsure?", "ok", "All readings clear and source-linked", []))
+
+    for rule_id, days, was_set in (
+        ("hba1c_recent", hba1c_max_days, hba1c_set),
+        ("kidney_recent", kidney_max_days, kidney_set),
+        ("lipid_recent", lipid_max_days, lipid_set),
+    ):
+        if was_set:
+            for r in results:
+                if r.rule_id == rule_id:
+                    r.question = f"Done within the interval the doctor set ({days} days)?"
+                    r.evidence_text += f" (interval set by the doctor: {days} days)"
+
+    # 10+. Change from the patient's own baseline: only for tests where the doctor set a review margin.
+    for item in patient_data.get("plan", []):
+        margin = item.get("review_margin")
+        if not margin:
+            continue
+        shift = baseline_shift(dated_points(observations, item["test"]), margin)
+        if shift:
+            name = TEST_NAMES.get(item["test"], item["test"])
+            direction = "above" if shift["difference"] > 0 else "below"
+            results.append(
+                RuleResult(
+                    f"baseline_{item['test']}",
+                    f"{name}: change from own baseline",
+                    "Is the latest result far from this patient's own recent average?",
+                    "check",
+                    f"{name} is {abs(shift['difference']):g} {direction} this patient's own average of {shift['baseline']:g} "
+                    f"over the 12 months before it ({shift['n_prior']} results). The doctor set the review margin at {margin:g}.",
+                    [f"obs:{shift['observation_id']}"],
+                )
+            )
 
     return results

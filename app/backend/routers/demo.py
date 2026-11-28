@@ -57,11 +57,17 @@ def _scripted_bbox(kind: str, idx: int) -> tuple[float, float, float, float]:
     return x0 / _PAGE_W, (y - 12) / _PAGE_H, x1 / _PAGE_W, (y + 52) / _PAGE_H
 
 
-def _create_patient_with_intake(session: Session, p_info: dict) -> Patient:
+def _create_patient_with_intake(
+    session: Session,
+    p_info: dict,
+    intake: list | None = None,
+    intake_meds: list | None = None,
+) -> Patient:
+    """A patient with confirmed kiosk answers and the medicines they named. Defaults are Ramesh ji's."""
     patient = Patient(display_name=p_info["display_name"], age=p_info["age"], language=p_info["language"])
     session.add(patient)
     session.flush()
-    for qid, val, raw_txt in DEMO_INTAKE:
+    for qid, val, raw_txt in intake if intake is not None else DEMO_INTAKE:
         session.add(
             IntakeAnswer(
                 patient_id=patient.id,
@@ -71,16 +77,17 @@ def _create_patient_with_intake(session: Session, p_info: dict) -> Patient:
                 confirmed=True,
             )
         )
-    session.add(
-        Medication(
-            patient_id=patient.id,
-            source="intake",
-            name_as_written="Glycomet",
-            generic_name=map_brand_to_generic("Glycomet"),
-            strength="500 mg",
-            frequency="1-0-1",
+    for name, strength, frequency in intake_meds if intake_meds is not None else [["Glycomet", "500 mg", "1-0-1"]]:
+        session.add(
+            Medication(
+                patient_id=patient.id,
+                source="intake",
+                name_as_written=name,
+                generic_name=map_brand_to_generic(name),
+                strength=strength,
+                frequency=frequency,
+            )
         )
-    )
     session.commit()
     session.refresh(patient)
     return patient
@@ -222,6 +229,32 @@ def seed_demo_patient(session: Session, mode: str) -> dict:
         "documents_total": len(ramesh_data["papers"]),
         "documents_failed": failed,
     }
+
+
+def seed_personas(session: Session) -> list[dict]:
+    """Two more made-up patients with different trajectories, from data/synthetic/personas.json.
+    Always backup (scripted) values, labelled as such on the dashboard. Safe to call twice."""
+    path = SYNTH_DIR / "personas.json"
+    if not path.exists():
+        return []
+    created: list[dict] = []
+    for persona in json.loads(path.read_text(encoding="utf-8"))["personas"]:
+        name = persona["patient"]["display_name"]
+        existing = session.exec(select(Patient).where(Patient.display_name == name)).first()
+        if existing is not None:
+            created.append({"patient_id": existing.id, "display_name": name, "trajectory": persona["trajectory"], "created": False})
+            continue
+        patient = _create_patient_with_intake(session, persona["patient"], persona["intake"], persona["intake_meds"])
+        for paper in persona["papers"]:
+            doc, page = _add_document_with_page(session, patient, paper, "scripted")
+            _seed_scripted_values(session, patient, doc, page, paper)
+        created.append({"patient_id": patient.id, "display_name": name, "trajectory": persona["trajectory"], "created": True})
+    return created
+
+
+@router.post("/demo/seed-personas")
+def seed_demo_personas(session: Session = Depends(get_session)) -> list[dict]:
+    return seed_personas(session)
 
 
 @router.post("/demo/seed")

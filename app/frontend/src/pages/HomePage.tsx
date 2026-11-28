@@ -70,6 +70,16 @@ export function HomePage() {
     }
   };
 
+  const addPersonas = async () => {
+    setError(null);
+    try {
+      await api.seedPersonas();
+      nav('/doctor');
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : String(e));
+    }
+  };
+
   const keyReady = !!health?.nvidia_key_present;
   const publicDemo = !!health?.public_demo;
 
@@ -137,10 +147,14 @@ export function HomePage() {
                 <button className="btn btn-quiet" disabled={!!loading} onClick={() => seed('scripted')}>
                   {loading === 'scripted' ? 'Loading…' : 'Use backup values (no AI)'}
                 </button>
+                <button className="btn btn-quiet" disabled={!!loading} onClick={addPersonas}>
+                  Add 2 more demo patients
+                </button>
               </div>
               <p className="small muted page-note">
                 Backup values come from the synthetic answer key, and the doctor&rsquo;s page says so. Use them only when
-                there is no key or no internet.
+                there is no key or no internet. The 2 extra patients (Mohan Lal and Kavita Sharma) are made up and use
+                backup values too: one has a medicine change and a falling HbA1c, the other a steady year and then a jump.
               </p>
             </div>
           )}

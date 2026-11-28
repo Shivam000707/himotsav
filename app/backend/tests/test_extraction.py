@@ -152,3 +152,29 @@ def test_compress_image_fits_the_api_limit(tmp_path):
     data, w, h = compress_image_for_api(path)
     assert len(data) <= 170_000
     assert max(w, h) <= 1600
+
+
+def test_short_names_must_match_as_whole_words():
+    # A 3-letter name must not be "found" inside longer words, or an invented medicine looks grounded.
+    assert not extraction._block_contains("ORS", "FOR (Full name, address)")
+    assert not extraction._block_contains("ORS", "Superscription")
+    assert extraction._block_contains("ORS", "Sig: ORS 2 sachets")
+    assert extraction._block_contains("Amphogel", "Amphogel good")
+
+
+def test_rows_from_an_undated_page_are_marked_unsure(monkeypatch, tmp_path):
+    img_path = tmp_path / "rx.png"
+    Image.new("RGB", (100, 100), (255, 255, 255)).save(img_path)
+    lines = [{"text": t, "bbox": [100, 100 + 60 * i, 800, 140 + 60 * i]} for i, t in enumerate(["Dr. B", "Date: smudged", "Tab. Glycomet 500 1-0-1"])]
+    parse_raw = {"choices": [{"message": {"content": json.dumps(lines)}}]}
+    struct = {"kind": "rx", "source_org": "Dr. B", "doc_date": "smudged", "medications": [
+        {"name": "Glycomet", "strength": "500", "frequency": "1-0-1", "block_id": "b2", "uncertain": False}]}
+    struct_raw = {"choices": [{"message": {"content": json.dumps(struct)}}]}
+    monkeypatch.setattr(parse, "chat_completion", lambda payload, **kw: parse_raw)
+    monkeypatch.setattr(structure, "chat_completion", lambda payload, **kw: struct_raw)
+
+    _, _, _, med_rows = extraction.extract_page_items(img_path)
+    (med,) = med_rows
+    assert med["rx_date"] is None
+    assert med["uncertain"] is True
+    assert "date not readable" in med["note"]

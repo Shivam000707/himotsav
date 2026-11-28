@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-3b242383-1fcc-46d1-b003-5b49408d3389",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "Tab. Amaryl 1 mg 1-0-0",
+        "refusal": null,
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "created": 1795794472,
+  "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 465,
+    "completion_tokens": 15,
+    "total_tokens": 480,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

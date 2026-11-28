@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-efbc1b0b-11c6-4433-9fcc-8917885cf249",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "Tab. Glycomet 500 1-0-1",
+        "refusal": null,
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "created": 1795794471,
+  "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 465,
+    "completion_tokens": 17,
+    "total_tokens": 482,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

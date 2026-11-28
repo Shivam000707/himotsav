@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-d15ce8d9-b5a4-44c1-a69b-6833619810e8",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "LDL cholesterol 128 mg/dL",
+        "refusal": null,
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "created": 1795794454,
+  "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 370,
+    "completion_tokens": 11,
+    "total_tokens": 381,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

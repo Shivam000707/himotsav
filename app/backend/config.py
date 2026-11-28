@@ -25,6 +25,8 @@ class Settings:
     nvidia_parse_model: str = os.getenv("NVIDIA_PARSE_MODEL", "nvidia/nemotron-3.5-super-vl-120b-a12b")
     nvidia_text_model: str = os.getenv("NVIDIA_TEXT_MODEL", "nvidia/nemotron-3.5-lightning-30b-a3b")
     nvidia_vision_model: str = os.getenv("NVIDIA_VISION_MODEL", "nvidia/nemotron-3.5-super-vl-120b-a12b")
+    # Second reader: re-reads each value line from a zoomed crop and flags disagreements. Empty turns it off.
+    nvidia_verify_model: str = os.getenv("NVIDIA_VERIFY_MODEL", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning").strip()
     nvidia_asr_function_id: str = os.getenv("NVIDIA_ASR_FUNCTION_ID", "").strip()
     nvidia_asr_lang: str = os.getenv("NVIDIA_ASR_LANG", "hi-IN").strip()
     demo_today_str: str = os.getenv("DEMO_TODAY", "").strip()

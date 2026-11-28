@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-74266431-1ef3-470d-aa24-694a976e08c3",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "{\n  \"kind\": \"lab\",\n  \"source_org\": \"Sunrise Pathology\",\n  \"doc_date\": \"14 Feb 2023\",\n  \"doc_date_block\": \"b3\",\n  \"observations\": [\n    {\n      \"label\": \"HbA1c\",\n      \"value\": \"7.2\",\n      \"unit\": \"%\",\n      \"block_id\": \"b5\",\n      \"uncertain\": false,\n      \"note\": null\n    },\n    {\n      \"label\": \"Fasting glucose\",\n      \"value\": \"142\",\n      \"unit\": \"mg/dL\",\n      \"block_id\": \"b6\",\n      \"uncertain\": false,\n      \"note\": null\n    }\n  ],\n  \"medications\": []\n}",
+        "refusal": null,
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "created": 1795794408,
+  "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 709,
+    "completion_tokens": 167,
+    "total_tokens": 876,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
   api,
   ApiError,
@@ -13,11 +12,13 @@ import {
   type TimelineData,
 } from '../api';
 import { Alert, Back, Check, Info, Print } from '../components/icons';
+import { MonitoringPlan } from '../components/MonitoringPlan';
+import { TrendChart } from '../components/TrendChart';
 import { SourceViewer, type SourceTarget } from '../components/SourceViewer';
 import {
-  daysBetween,
   fmtDate,
   fmtMonth,
+  TEST_DISPLAY,
   medDose,
   medKey,
   medName,
@@ -34,140 +35,6 @@ const STATUS_STAMP: Record<RuleStatus, { cls: string; label: string }> = {
   ok: { cls: 'stamp-ok', label: 'Nothing to report' },
 };
 const RANK: Record<RuleStatus, number> = { flag: 0, missing: 1, check: 2, note: 3, ok: 4 };
-
-interface Point {
-  date: string;
-  label: string;
-  value: number | null;
-  obs: Observation;
-}
-
-function series(obs: Observation[] | undefined): Point[] {
-  return (obs ?? [])
-    .filter((o) => o.obs_date && (o.value_std ?? o.value_num) != null)
-    .map((o) => ({ date: o.obs_date as string, label: fmtMonth(o.obs_date), value: o.value_std ?? o.value_num, obs: o }));
-}
-
-function ChartTooltip({ active, payload }: { active?: boolean; payload?: { payload: Point }[] }) {
-  if (!active || !payload?.length) return null;
-  const p = payload[0].payload;
-  return (
-    <div className="chart-tip">
-      <strong>{obsDisplay(p.obs)}</strong>
-      <div>{fmtDate(p.date)}</div>
-      <div className="muted">{p.obs.source_org ?? 'unknown lab'}</div>
-      {p.obs.converted && <div className="muted">converted from {rawDisplay(p.obs)}</div>}
-      <div className="chart-tip-hint">Click the point to open the paper</div>
-    </div>
-  );
-}
-
-interface TrendProps {
-  title: string;
-  unit: string;
-  points: Point[];
-  step: number;
-  notes: string[];
-  onOpen: (o: Observation) => void;
-  emptyText: string;
-}
-
-/** One lab value over time. Every point is labelled and opens its source paper. */
-function Trend({ title, unit, points, step, notes, onOpen, emptyText }: TrendProps) {
-  const INK = '#17211e';
-  const BOARD = '#0b5b4b';
-  return (
-    <div className="trend">
-      <h3>
-        {title} <span className="trend-unit">{unit}</span>
-      </h3>
-      {points.length === 0 ? (
-        <p className="muted">{emptyText}</p>
-      ) : (
-        <>
-          {notes.map((n) => (
-            <p key={n} className="trend-note">
-              <Info size={16} />
-              {n}
-            </p>
-          ))}
-          <div className="trend-chart">
-            <ResponsiveContainer>
-              <LineChart data={points} margin={{ top: 32, right: 28, bottom: 4, left: 0 }}>
-                <CartesianGrid vertical={false} stroke="#d4d9d0" strokeDasharray="2 5" />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 13, fill: '#44524d' }}
-                  tickLine={false}
-                  axisLine={{ stroke: '#aeb6ac' }}
-                  padding={{ left: 24, right: 24 }}
-                />
-                <YAxis
-                  width={40}
-                  tick={{ fontSize: 12, fill: '#62706a' }}
-                  tickLine={false}
-                  axisLine={false}
-                  domain={[
-                    (min: number) => Math.floor((min - step * 0.4) / step) * step,
-                    (max: number) => Math.ceil((max + step * 0.4) / step) * step,
-                  ]}
-                />
-                <Tooltip content={<ChartTooltip />} cursor={false} />
-                <Line
-                  type="linear"
-                  dataKey="value"
-                  stroke={BOARD}
-                  strokeWidth={3}
-                  isAnimationActive={false}
-                  activeDot={false}
-                  dot={(props: { cx?: number; cy?: number; index?: number; payload?: Point; value?: number }) => {
-                    const { cx = 0, cy = 0, index = 0, payload, value } = props;
-                    if (!payload) return <g key={index} />;
-                    const label = `${obsDisplay(payload.obs)}, ${fmtDate(payload.date)}. Open the source paper.`;
-                    return (
-                      <g
-                        key={index}
-                        className="pt"
-                        role="button"
-                        tabIndex={0}
-                        aria-label={label}
-                        onClick={() => onOpen(payload.obs)}
-                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onOpen(payload.obs)}
-                      >
-                        <circle cx={cx} cy={cy} r={18} fill="transparent" />
-                        <circle
-                          cx={cx}
-                          cy={cy}
-                          r={payload.obs.converted ? 6.5 : 6}
-                          fill={payload.obs.converted ? '#ffffff' : BOARD}
-                          stroke={BOARD}
-                          strokeWidth={3}
-                        />
-                        <text
-                          x={cx}
-                          y={cy - 15}
-                          textAnchor="middle"
-                          fontSize={15}
-                          fontWeight={800}
-                          fill={INK}
-                          stroke="#f2f3ee"
-                          strokeWidth={4}
-                          paintOrder="stroke"
-                        >
-                          {value}
-                        </text>
-                      </g>
-                    );
-                  }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 
 /** Groups prescription rows by medicine, newest first, so repeated prescriptions show once. */
 function groupMeds(meds: Medication[]) {
@@ -352,17 +219,9 @@ export function DoctorDashboardPage() {
   const attention = rules.filter((r) => r.status !== 'ok');
   const allGood = rules.filter((r) => r.status === 'ok');
 
-  const hba1c = series(timeline.observations_by_test['hba1c']);
-  const fbs = series(timeline.observations_by_test['fasting_glucose']);
-  const hba1cNotes: string[] = [];
-  for (let i = 1; i < hba1c.length; i++) {
-    if (daysBetween(hba1c[i - 1].date, hba1c[i].date) > 365) {
-      hba1cNotes.push(`No HbA1c in the papers from ${fmtMonth(hba1c[i - 1].date)} to ${fmtMonth(hba1c[i].date)}.`);
-    }
-  }
-  const fbsNotes = fbs.some((p) => p.obs.converted)
-    ? ['Hollow point: the paper gave mmol/L, converted here to mg/dL (× 18.016). Both values are kept.']
-    : [];
+  const trendTests = Object.keys(TEST_DISPLAY).filter((t) =>
+    (timeline.observations_by_test[t] ?? []).some((o) => o.obs_date && (o.value_std ?? o.value_num) != null),
+  );
 
   const medGroups = groupMeds(summary.medications);
   const rxKeys = new Set(medGroups.map((g) => medKey(g[0])));
@@ -469,27 +328,43 @@ export function DoctorDashboardPage() {
 
           <section className="sec" aria-labelledby="h-trend">
             <h2 id="h-trend">Trends</h2>
-            <p className="sec-note no-print">Click any point to open the paper it came from.</p>
-            <div className="trends">
-              <Trend
-                title="HbA1c"
-                unit="%"
-                step={1}
-                points={hba1c}
-                notes={hba1cNotes}
-                onOpen={(o) => setSourceTarget(obsTarget(o))}
-                emptyText="No HbA1c was found in the papers."
-              />
-              <Trend
-                title="Fasting glucose"
-                unit="mg/dL"
-                step={20}
-                points={fbs}
-                notes={fbsNotes}
-                onOpen={(o) => setSourceTarget(obsTarget(o))}
-                emptyText="No fasting glucose was found in the papers."
-              />
-            </div>
+            <p className="sec-note no-print">
+              Every test found in the papers, on a date axis. Click a point to open the paper it came from. Rates and
+              medicine lines describe the records only.
+            </p>
+            {trendTests.length === 0 ? (
+              <p className="muted">No dated test results were found in the papers.</p>
+            ) : (
+              <div className="trends">
+                {trendTests.map((t) => (
+                  <TrendChart
+                    key={t}
+                    title={TEST_DISPLAY[t] ?? t}
+                    observations={timeline.observations_by_test[t]}
+                    plan={timeline.plan.find((p) => p.test === t)}
+                    events={timeline.medicine_events}
+                    stats={timeline.trends[t]}
+                    onOpen={(o) => setSourceTarget(obsTarget(o))}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="sec" aria-labelledby="h-plan">
+            <h2 id="h-plan">Monitoring plan</h2>
+            <p className="sec-note">
+              The doctor sets the targets, review margins and test intervals. Until a number is set, the draft default
+              checks in Needs attention apply.
+            </p>
+            <MonitoringPlan
+              key={patientId}
+              patientId={patientId}
+              plan={summary.plan}
+              schedule={summary.schedule}
+              testsInRecords={trendTests}
+              onChanged={loadData}
+            />
           </section>
 
           <section className="sec" aria-labelledby="h-latest">
@@ -562,7 +437,10 @@ export function DoctorDashboardPage() {
                         </h3>
                         <p>
                           {target ? (
-                            <button className="mark" onClick={() => setSourceTarget(target)}>
+                            <button
+                              className={`mark ${latest.unverified && !latest.verified_by_clinician ? 'mark-loose' : ''}`}
+                              onClick={() => setSourceTarget(target)}
+                            >
                               {medDose(latest)}
                             </button>
                           ) : (
@@ -580,6 +458,11 @@ export function DoctorDashboardPage() {
                           </p>
                         )}
                         {latest.note && <p className="muted small">Note: {latest.note}</p>}
+                        <div className="res-stamps">
+                          {latest.uncertain && !latest.verified_by_clinician && <span className="stamp stamp-check">Unsure reading</span>}
+                          {latest.unverified && !latest.verified_by_clinician && <span className="stamp stamp-missing">No exact source</span>}
+                          {latest.verified_by_clinician && <span className="stamp stamp-ok">Checked by doctor</span>}
+                        </div>
                       </div>
                       <span className={`stamp med-stamp ${status === 'confirmed today' ? 'stamp-ok' : 'stamp-check'}`}>
                         {cap(status)}
@@ -600,6 +483,25 @@ export function DoctorDashboardPage() {
                   </li>
                 ))}
               </ul>
+            )}
+            {timeline.medicine_events.length > 0 && (
+              <div className="med-events">
+                <h3>Medicine events in the records</h3>
+                <p className="muted small">
+                  Taken from the dates on the prescriptions. This shows the order of events only. It does not show that a
+                  medicine caused any change.
+                </p>
+                <ul className="events">
+                  {timeline.medicine_events.map((e, i) => (
+                    <li key={`${e.medicine}-${e.date}-${i}`}>
+                      <span className="event-date">{fmtDate(e.date)}</span>
+                      <span>
+                        <strong>{e.medicine}</strong>. {e.detail}.
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </section>
 

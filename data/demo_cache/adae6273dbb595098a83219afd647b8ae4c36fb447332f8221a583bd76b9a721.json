@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-5d6b5d00-fb21-4e52-b158-bb066fe38524",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "HbA1c 7.6 %",
+        "refusal": null,
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "created": 1795794438,
+  "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 335,
+    "completion_tokens": 11,
+    "total_tokens": 346,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

@@ -63,7 +63,7 @@ def test_auto_seed_loads_the_demo_patient_once(engine, monkeypatch):
     main._auto_seed()
     main._auto_seed()  # a second start must not add a second patient
     with Session(engine) as s:
-        assert len(s.exec(select(Patient)).all()) == 1
+        assert len(s.exec(select(Patient)).all()) == 3  # Ramesh ji and the two extra demo patients
 
 
 def test_auto_seed_ignores_unknown_modes(engine, monkeypatch):

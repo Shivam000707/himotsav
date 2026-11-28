@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from services.rules import evaluate
+from services.trends import schedule_rows
 
 RESOURCES_DIR = Path(__file__).resolve().parent.parent / "resources"
 DISCLAIMER = "Documentation aid only. Not a diagnosis or treatment advice."
@@ -79,9 +80,11 @@ def build_summary(
     doctor_note: str,
     today: date,
     documents: Optional[list[dict[str, Any]]] = None,
+    plan: Optional[list[dict[str, Any]]] = None,
 ) -> dict[str, Any]:
+    plan = plan or []
     rules = evaluate(
-        {"observations": observations, "medications": medications, "answers": answers},
+        {"observations": observations, "medications": medications, "answers": answers, "plan": plan},
         today=today,
     )
 
@@ -148,4 +151,6 @@ def build_summary(
         "unanswered_topics": [q_by_id[qid].get("topic", qid) for qid in unanswered],
         "documents": documents or [],
         "doctor_note": doctor_note,
+        "plan": plan,
+        "schedule": schedule_rows(observations, plan, today),
     }

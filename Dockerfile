@@ -14,7 +14,7 @@ RUN pip install -r app/backend/requirements.txt
 COPY app/backend app/backend
 # What the demo needs at runtime: the 7 synthetic papers and the saved AI replies for them.
 COPY data/synthetic/images data/synthetic/images
-COPY data/synthetic/ramesh.json data/synthetic/labels.json data/synthetic/
+COPY data/synthetic/ramesh.json data/synthetic/labels.json data/synthetic/personas.json data/synthetic/
 COPY data/demo_cache data/demo_cache
 
 # Safe defaults for a public site: no live NVIDIA calls, no uploads, Ramesh ji loaded at every start.

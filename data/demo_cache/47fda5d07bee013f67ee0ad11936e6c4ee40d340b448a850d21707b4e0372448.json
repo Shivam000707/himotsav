@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-23887ac2-6ad1-4eeb-a1b8-50bcd473ff3e",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "Fasting glucose 142 mg/dL",
+        "refusal": null,
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "created": 1795794412,
+  "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 370,
+    "completion_tokens": 12,
+    "total_tokens": 382,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

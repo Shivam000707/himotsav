@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-8d2623de-3939-40cf-96c1-862d8aa3c2c4",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "Fasting glucose 8.9 mmol/L",
+        "refusal": null,
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "created": 1795794439,
+  "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 335,
+    "completion_tokens": 11,
+    "total_tokens": 346,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-50d7126e-e97b-4d91-af2c-d8eed429e710",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "{\n  \"kind\": \"lab\",\n  \"source_org\": \"City Health Lab\",\n  \"doc_date\": \"21 Aug 2025\",\n  \"doc_date_block\": \"b3\",\n  \"observations\": [\n    {\n      \"label\": \"Creatinine\",\n      \"value\": \"1.2\",\n      \"unit\": \"mg/dL\",\n      \"block_id\": \"b5\",\n      \"uncertain\": false,\n      \"note\": null\n    },\n    {\n      \"label\": \"Urine albumin / creatinine\",\n      \"value\": \"24\",\n      \"unit\": \"mg/g\",\n      \"block_id\": \"b6\",\n      \"uncertain\": false,\n      \"note\": null\n    }\n  ],\n  \"medications\": []\n}",
+        "refusal": null,
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "created": 1795839877,
+  "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 709,
+    "completion_tokens": 168,
+    "total_tokens": 877,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

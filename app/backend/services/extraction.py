@@ -12,11 +12,14 @@ from rapidfuzz import fuzz
 
 from services.normalize import (
     canonicalize_test,
+    canonicalize_test_in_text,
     convert_unit,
     map_brand_to_generic,
     parse_indian_date,
+    split_value_and_unit,
 )
 from services.parse import ParsedBlock, parse_page_image
+from services.verify import cross_check_rows
 from services.structure import (
     StructuredPage,
     structure_from_blocks,
@@ -82,6 +85,10 @@ def _block_contains(needle: str, text: str) -> bool:
         num = re.sub(r"^[<>]\s*", "", needle)
         pattern = r"(?<![\d.,])" + re.escape(num) + r"(?![\d]|[.,]\d)"
         return re.search(pattern, text) is not None
+    if len(needle) <= 4:
+        # A fuzzy match on 3 or 4 letters is nearly meaningless (it can match inside any longer word),
+        # so short names must appear as a whole word.
+        return re.search(r"(?<![A-Za-z])" + re.escape(needle) + r"(?![A-Za-z])", text, flags=re.IGNORECASE) is not None
     return fuzz.partial_ratio(needle.lower(), text.lower()) >= 90
 
 
@@ -130,26 +137,35 @@ def extract_page_items(
                 log.warning("Vision fallback failed for %s: %s", page_image_path.name, exc)
 
     doc_date, date_note = parse_indian_date(structured.doc_date)
+    if doc_date is None and not date_note:
+        date_note = "date not found"
+    date_unsure = doc_date is None  # without a date the value cannot be placed on the timeline or in a recency rule
 
     obs_rows: list[dict] = []
     for obs in structured.observations:
+        if not obs.label.strip() or not obs.value.strip():
+            continue  # a result with no name or no number says nothing
         resolved_block_id, unverified = verify_grounding(obs.value, obs.block_id, blocks)
         test_name = canonicalize_test(obs.label)
-        conv = convert_unit(test_name, obs.value, obs.unit)
-        notes = [n for n in [obs.note, conv.note, date_note] if n]
+        if test_name == "other" and resolved_block_id:
+            line_text = next((b.text for b in blocks if b.block_id == resolved_block_id), "")
+            test_name = canonicalize_test_in_text(line_text)
+        value_clean, unit_clean, split_note = split_value_and_unit(obs.value, obs.unit)
+        conv = convert_unit(test_name, value_clean, unit_clean)
+        notes = [n for n in [obs.note, split_note, conv.note, date_note] if n]
         obs_rows.append(
             {
                 "test": test_name,
                 "label_as_written": obs.label,
-                "value_raw": obs.value,
-                "unit_raw": obs.unit,
+                "value_raw": value_clean,
+                "unit_raw": unit_clean,
                 "value_num": conv.value_num,
                 "unit_std": conv.unit_std,
                 "value_std": conv.value_std,
                 "converted": conv.converted,
                 "obs_date": doc_date,
                 "block_id": resolved_block_id,
-                "uncertain": bool(obs.uncertain or conv.uncertain),
+                "uncertain": bool(obs.uncertain or conv.uncertain or date_unsure),
                 "unverified": unverified,
                 "note": "; ".join(notes) if notes else None,
             }
@@ -157,6 +173,8 @@ def extract_page_items(
 
     med_rows: list[dict] = []
     for med in structured.medications:
+        if not med.name.strip():
+            continue  # a dose or timing with no medicine name cannot be attached to anything
         resolved_block_id, unverified = verify_grounding(med.name, med.block_id, blocks)
         generic = map_brand_to_generic(med.name)
         notes = [n for n in [med.note, date_note] if n]
@@ -168,10 +186,13 @@ def extract_page_items(
                 "frequency": med.frequency,
                 "rx_date": doc_date,
                 "block_id": resolved_block_id,
-                "uncertain": bool(med.uncertain),
+                "uncertain": bool(med.uncertain or date_unsure),
                 "unverified": unverified,
                 "note": "; ".join(notes) if notes else None,
             }
         )
+
+    # Second reading of each value line by a different model: a disagreement marks the value unsure.
+    cross_check_rows(page_image_path, blocks, obs_rows, med_rows, use_cache=use_cache, allow_network=allow_network)
 
     return blocks, structured, obs_rows, med_rows

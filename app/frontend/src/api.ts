@@ -121,11 +121,59 @@ export interface PatientSummary {
   unanswered_topics: string[];
   documents: SummaryDocument[];
   doctor_note: string;
+  plan: PlanItem[];
+  schedule: ScheduleRow[];
+}
+
+/** The doctor's own numbers for one test of one patient. Nothing here is a default. */
+export interface PlanItem {
+  test: string;
+  target_low: number | null;
+  target_high: number | null;
+  review_margin: number | null;
+  interval_days: number | null;
+}
+
+export interface PlanUpdate {
+  target_low: number | null;
+  target_high: number | null;
+  review_margin: number | null;
+  interval_days: number | null;
+}
+
+export interface ScheduleRow {
+  key: string;
+  label: string;
+  interval_days: number | null;
+  interval_set_by_doctor: boolean;
+  last_date: string | null;
+  due_date: string | null;
+  status: 'Completed' | 'Due' | 'Overdue' | 'No record' | 'Interval not set';
+}
+
+export interface TrendStats {
+  n: number;
+  first_date: string | null;
+  last_date: string | null;
+  change_since_previous: number | null;
+  slope_per_year: number | null;
+  span_days: number;
+}
+
+export interface MedicineEvent {
+  date: string;
+  medicine: string;
+  kind: 'first_seen' | 'changed' | 'not_on_later';
+  detail: string;
+  medication_id: number;
 }
 
 export interface TimelineData {
   observations_by_test: Record<string, Observation[]>;
   medications: Medication[];
+  trends: Record<string, TrendStats>;
+  medicine_events: MedicineEvent[];
+  plan: PlanItem[];
 }
 
 export interface QuestionOption {
@@ -224,6 +272,7 @@ export const api = {
     req<Patient>('/api/patients', json('POST', body)),
   seedDemo: (mode: 'live' | 'cached' | 'scripted') =>
     req<SeedResult>(`/api/demo/seed?mode=${mode}`, { method: 'POST' }),
+  seedPersonas: () => req<{ patient_id: number; display_name: string }[]>('/api/demo/seed-personas', { method: 'POST' }),
   getQuestions: (lang: string) => req<IntakeQuestion[]>(`/api/intake/questions?lang=${lang}`),
   upsertAnswer: (
     patientId: number,
@@ -240,6 +289,8 @@ export const api = {
     req<Observation>(`/api/observations/${id}`, json('PATCH', body)),
   patchMedication: (id: number, body: { edited_value?: string; verified_by_clinician?: boolean }) =>
     req<Medication>(`/api/medications/${id}`, json('PATCH', body)),
+  savePlanItem: (patientId: number, test: string, body: PlanUpdate) =>
+    req<unknown>(`/api/patients/${patientId}/plan/${encodeURIComponent(test)}`, json('PUT', body)),
   saveDoctorNote: (patientId: number, text: string) =>
     req<unknown>(`/api/patients/${patientId}/note`, json('PUT', { text })),
   transcribe: (wav: Blob, lang: string) => {

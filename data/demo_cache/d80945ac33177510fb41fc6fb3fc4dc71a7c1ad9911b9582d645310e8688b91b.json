@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-0973cb09-9ae1-4a48-93f9-73e937137f2c",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "[\n  {\"text\": \"Sunrise Pathology\", \"bbox\": [47, 25, 342, 53]},\n  {\"text\": \"PATHOLOGY LAB REPORT | Synthetic Demo Data\", \"bbox\": [47, 61, 530, 80]},\n  {\"text\": \"Patient: Ramesh Kumar | Age/Sex: 58 / M\", \"bbox\": [47, 126, 540, 148]},\n  {\"text\": \"Date: 14 Feb 2023\", \"bbox\": [707, 126, 919, 148]},\n  {\"text\": \"Test Result Unit\", \"bbox\": [57, 200, 800, 222]},\n  {\"text\": \"HbA1c 7.2 %\", \"bbox\": [57, 238, 790, 260]},\n  {\"text\": \"Fasting glucose 142 mg/dL\", \"bbox\": [57, 286, 830, 309]},\n  {\"text\": \"MediKiosk-DM Synthetic Test Document - Not a Real Patient Record\", \"bbox\": [47, 950, 680, 969]}\n]",
+        "refusal": null,
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "created": 1795794405,
+  "model": "private/nvidia/nemotron-3.5-super-120b-a12b",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 2046,
+    "completion_tokens": 314,
+    "total_tokens": 2360,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

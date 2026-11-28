@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-b31536f3-44cf-4e93-b4ef-aa37621c8dc1",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "[\n  {\"text\": \"Dr. A · General Physician\", \"bbox\": [47, 28, 447, 54]},\n  {\"text\": \"PRESCRIPTION | Synthetic Demo Data\", \"bbox\": [47, 62, 422, 80]},\n  {\"text\": \"Patient: Ramesh Kumar | Age/Sex: 58 / M\", \"bbox\": [47, 126, 537, 147]},\n  {\"text\": \"Date: 20 Feb 2023\", \"bbox\": [706, 126, 919, 147]},\n  {\"text\": \"Rx\", \"bbox\": [47, 193, 97, 219]},\n  {\"text\": \"Tab. Glycomet 500 1-0-1\", \"bbox\": [62, 243, 470, 270]},\n  {\"text\": \"MediKiosk-DM Synthetic Test Document - Not a Real Patient Record\", \"bbox\": [47, 950, 680, 968]}\n]",
+        "refusal": null,
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "created": 1795794422,
+  "model": "private/nvidia/nemotron-3.5-super-120b-a12b",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 2046,
+    "completion_tokens": 276,
+    "total_tokens": 2322,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

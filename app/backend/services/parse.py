@@ -25,8 +25,9 @@ READ_PROMPT = (
     "You are reading a photographed or scanned medical paper: a diabetes lab report or a prescription. "
     "It may be handwritten, and may be in English or Hindi. Transcribe it exactly as written.\n"
     "Return ONLY a JSON array, in reading order. One item per printed or written line. "
-    "For a table row, join the cells from left to right with single spaces into ONE item, for example "
-    '"HbA1c 7.6 %".\n'
+    "Text that sits on the same horizontal row of the page belongs in the same item, even when it is far apart "
+    "or in a separate column (for example a medicine name and a quantity at the right edge). For a table row, "
+    "join the cells from left to right with single spaces into ONE item.\n"
     'Each item is {"text": the exact text, "bbox": [x_min, y_min, x_max, y_max]}. The four numbers are integers '
     "from 0 to 1000, relative to the image width and height: (0, 0) is the top-left corner and (1000, 1000) is "
     "the bottom-right corner. The box must tightly surround that line.\n"

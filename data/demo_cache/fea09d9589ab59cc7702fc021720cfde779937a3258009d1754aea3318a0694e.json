@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-2af36c84-3a34-4d80-8959-bfe752e5e6ee",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "{\n  \"kind\": \"rx\",\n  \"source_org\": \"Dr. B · Diabetes Clinic\",\n  \"doc_date\": \"02 Jul 2024\",\n  \"doc_date_block\": \"b3\",\n  \"observations\": [],\n  \"medications\": [\n    {\n      \"name\": \"Glycomet\",\n      \"strength\": \"500\",\n      \"frequency\": \"1-0-1\",\n      \"block_id\": \"b5\",\n      \"uncertain\": false,\n      \"note\": null\n    },\n    {\n      \"name\": \"Amaryl\",\n      \"strength\": \"? mg\",\n      \"frequency\": \"1-0-0\",\n      \"block_id\": \"b6\",\n      \"uncertain\": true,\n      \"note\": \"Strength contains placeholder '?'\"\n    }\n  ]\n}",
+        "refusal": null,
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "created": 1795794468,
+  "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 712,
+    "completion_tokens": 182,
+    "total_tokens": 894,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

@@ -113,3 +113,17 @@ class DoctorNote(SQLModel, table=True):
     patient_id: int = Field(foreign_key="patient.id", unique=True, index=True)
     text: str = ""
     updated_at: datetime = Field(default_factory=utc_now)
+
+
+class PlanItem(SQLModel, table=True):
+    """The doctor's own monitoring numbers for one test of one patient. Nothing here is a default or a
+    suggestion: a row exists only because the doctor typed it."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    patient_id: int = Field(foreign_key="patient.id", index=True)
+    test: str
+    target_low: Optional[float] = None
+    target_high: Optional[float] = None
+    review_margin: Optional[float] = None  # flag when the latest value is further than this from the patient's own baseline
+    interval_days: Optional[int] = None  # how often the doctor wants this test repeated
+    updated_at: datetime = Field(default_factory=utc_now)

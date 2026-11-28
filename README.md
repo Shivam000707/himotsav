@@ -119,7 +119,7 @@ The backend runs in Docker (`Dockerfile` at the repo root, `railway.json`) and t
 2. Environment Variable `VITE_API_BASE` = the Railway address, no trailing slash. Deploy.
 3. Put the Vercel address in Railway's `CORS_ORIGINS` (a comma-separated list if you have several, for example a custom domain).
 
-The database lives on the container's disk, so it resets on every deploy or restart. `AUTO_SEED_DEMO=cached` loads Ramesh ji again at each start. Patients created at the kiosk on the public site are lost on restart. If you ever change the NVIDIA models or prompts, run `eval/run_extraction_eval.py` locally and copy the new files from `data/cache` to `data/demo_cache`, because replies are saved under a hash of the request.
+The database lives on the container's disk, so it resets on every deploy or restart. `AUTO_SEED_DEMO=cached` loads Ramesh ji again at each start. Patients created at the kiosk on the public site are lost on restart. If you ever change the NVIDIA models or prompts, the saved replies in `data/demo_cache` stop matching (they are saved under a hash of the request). Re-run `eval/run_extraction_eval.py` locally, load the demo once in cached mode to confirm, and rebuild `data/demo_cache` from `data/cache`.
 
 Test the image on your machine: `docker build -t medikiosk-backend .` then `docker run -p 8001:8000 -e CORS_ORIGINS=http://localhost:5173 medikiosk-backend`.
 

@@ -28,7 +28,7 @@ def _auto_seed() -> None:
     from sqlmodel import Session, select
 
     from models import Patient
-    from routers.demo import seed_demo_patient
+    from routers.demo import seed_demo_patient, seed_personas
 
     with Session(db.engine) as session:
         if session.exec(select(Patient)).first() is not None:
@@ -36,6 +36,7 @@ def _auto_seed() -> None:
         result = seed_demo_patient(session, mode)
         log.info("Auto-seeded demo patient %s (%s), %d of %d papers failed",
                  result["patient_id"], mode, len(result["documents_failed"]), result["documents_total"])
+        seed_personas(session)
 
 
 @asynccontextmanager

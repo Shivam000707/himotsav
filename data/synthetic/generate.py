@@ -145,5 +145,22 @@ def main() -> None:
     print(f"Generated {len(labels)} images and labels.json in {SYNTH_DIR}")
 
 
+def main_personas() -> None:
+    """Clean images only for the extra demo patients in personas.json (Ramesh's files are left untouched)."""
+    IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+    data = json.loads((SYNTH_DIR / "personas.json").read_text(encoding="utf-8"))
+    n = 0
+    for persona in data["personas"]:
+        for paper in persona["papers"]:
+            render_paper(paper, persona["patient"], IMAGES_DIR / f"{paper['id']}.png")
+            n += 1
+    print(f"Generated {n} persona images in {IMAGES_DIR}")
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+
+    if "--personas" in sys.argv:
+        main_personas()
+    else:
+        main()

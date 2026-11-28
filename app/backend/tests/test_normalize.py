@@ -92,3 +92,21 @@ def test_brand_mapping_is_strict():
     assert map_brand_to_generic("Metformin 500 mg") == "metformin"
     assert map_brand_to_generic("Amaryl M 1") is None  # different product: shown as written
     assert map_brand_to_generic("Tab. Unknownex") is None
+
+
+def test_two_digit_year_after_a_month_name():
+    from datetime import date
+
+    from services.normalize import parse_indian_date
+
+    assert parse_indian_date("23 Jan 99") == (date(1999, 1, 23), None)
+    assert parse_indian_date("23 JAN 24") == (date(2024, 1, 23), None)
+    assert parse_indian_date("Jan 99") == (None, "date not readable")  # still needs a day
+
+
+def test_test_name_found_in_the_line_when_the_label_is_a_diagnosis():
+    from services.normalize import canonicalize_test_in_text
+
+    assert canonicalize_test_in_text("Imp: hypoglycemic (RBS-50mg/dl)") == "random_glucose"
+    assert canonicalize_test_in_text("Forms and orders") == "other"  # no whole-word match inside longer words
+    assert canonicalize_test_in_text("HbA1c 7.6 FBS 120") == "other"  # two tests on one line: never guess

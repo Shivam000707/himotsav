@@ -9,10 +9,11 @@ from sqlmodel import Session, select
 
 from config import settings
 from db import get_session
-from models import Block, DoctorNote, Document, IntakeAnswer, Medication, Observation, Page, Patient
-from schemas import ClinicianPatch, DoctorNoteUpdate
+from models import Block, DoctorNote, Document, IntakeAnswer, Medication, Observation, Page, Patient, PlanItem
+from schemas import ClinicianPatch, DoctorNoteUpdate, PlanUpdate
 from services.rules import evaluate
 from services.summary import build_summary
+from services.trends import PLAN_TESTS, dated_points, medicine_events, trend_stats
 
 router = APIRouter(prefix="/api", tags=["doctor"])
 
@@ -36,6 +37,7 @@ def _load_patient_bundle(patient_id: int, session: Session) -> dict[str, Any]:
     med_list = session.exec(select(Medication).where(Medication.patient_id == patient_id)).all()
     ans_list = session.exec(select(IntakeAnswer).where(IntakeAnswer.patient_id == patient_id)).all()
     note = session.exec(select(DoctorNote).where(DoctorNote.patient_id == patient_id)).first()
+    plan_rows = session.exec(select(PlanItem).where(PlanItem.patient_id == patient_id)).all()
 
     def attach_source(row_dict: dict[str, Any], doc_id: int | None, page_id: int | None, block_id: int | None) -> dict[str, Any]:
         doc = docs.get(doc_id) if doc_id else None
@@ -83,6 +85,7 @@ def _load_patient_bundle(patient_id: int, session: Session) -> dict[str, Any]:
         "answers": answers,
         "documents": documents,
         "doctor_note": note.text if note else "",
+        "plan": [p.model_dump() for p in sorted(plan_rows, key=lambda p: p.test)],
     }
 
 
@@ -96,7 +99,14 @@ def get_timeline(patient_id: int, session: Session = Depends(get_session)) -> di
         grouped[test_name].sort(key=lambda o: (o.get("obs_date") or date.min, o["id"]))
 
     meds = sorted(bundle["medications"], key=lambda m: (m.get("rx_date") or date.min, m["id"]))
-    return {"observations_by_test": grouped, "medications": meds}
+    trends = {t: trend_stats(dated_points(bundle["observations"], t)) for t in grouped if t in PLAN_TESTS}
+    return {
+        "observations_by_test": grouped,
+        "medications": meds,
+        "trends": trends,
+        "medicine_events": medicine_events(bundle["medications"]),
+        "plan": bundle["plan"],
+    }
 
 
 @router.get("/patients/{patient_id}/rules")
@@ -117,6 +127,7 @@ def get_summary(patient_id: int, session: Session = Depends(get_session)) -> dic
         doctor_note=bundle["doctor_note"],
         today=settings.today,
         documents=bundle["documents"],
+        plan=bundle["plan"],
     )
 
 
@@ -177,3 +188,36 @@ def put_doctor_note(
     session.commit()
     session.refresh(note)
     return note
+
+
+@router.put("/patients/{patient_id}/plan/{test}")
+def put_plan_item(
+    patient_id: int,
+    test: str,
+    payload: PlanUpdate,
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    """Set the doctor's target, review margin and test interval for one test. Empty fields are cleared,
+    and a row with nothing left is removed."""
+    if not session.get(Patient, patient_id):
+        raise HTTPException(status_code=404, detail="Patient not found")
+    if test not in PLAN_TESTS:
+        raise HTTPException(status_code=400, detail=f"Unknown test: {test}")
+    item = session.exec(select(PlanItem).where(PlanItem.patient_id == patient_id, PlanItem.test == test)).first()
+    empty = all(v is None for v in (payload.target_low, payload.target_high, payload.review_margin, payload.interval_days))
+    if empty:
+        if item:
+            session.delete(item)
+            session.commit()
+        return {"test": test, "removed": True}
+    if item is None:
+        item = PlanItem(patient_id=patient_id, test=test)
+    item.target_low = payload.target_low
+    item.target_high = payload.target_high
+    item.review_margin = payload.review_margin
+    item.interval_days = payload.interval_days
+    item.updated_at = datetime.now(timezone.utc)
+    session.add(item)
+    session.commit()
+    session.refresh(item)
+    return item.model_dump()

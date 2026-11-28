@@ -22,7 +22,12 @@ Rules:
 - Every item must have the block_id of the block it was read from. If you cannot point to a block, leave the item out.
 - If any character of a value, unit, dose or date is unclear, smudged or ambiguous, set "uncertain": true and explain in "note". Never guess.
 - Do not add medical interpretation, diagnosis, or advice. Extract only.
-- Include only these tests if present: HbA1c, fasting / post-meal / random glucose, creatinine, eGFR, urine albumin-creatinine ratio, total cholesterol, LDL, HDL, triglycerides. Include every medicine on a prescription."""
+- Only include an item that is actually written on this page. Never add a test or medicine from these instructions or from memory.
+- "label" is the name of the thing that was measured, exactly as written just before its number. It is never a diagnosis and never a whole line.
+- "value" is only the number as written. Put the unit in "unit".
+- A doctor's handwritten note or prescription with advice or medicines has kind "rx".
+- Include only these tests if present: HbA1c, fasting / post-meal / random glucose (RBS), creatinine, eGFR, urine albumin-creatinine ratio, total cholesterol, LDL, HDL, triglycerides.
+- Include every medicine, drink, fluid or supplement that is prescribed or advised on the page, even without a brand name or dose. Put its quantity or dose, if written, in "strength" and how often to take it, if written, in "frequency". Every medicine item must have a name, and appears once with its dose and timing on that same item. Do not include general advice."""
 
 
 class _Lenient(BaseModel):

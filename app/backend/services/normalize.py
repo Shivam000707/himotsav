@@ -79,6 +79,20 @@ def canonicalize_test(label: str) -> str:
     return "other"
 
 
+def canonicalize_test_in_text(text: str) -> str:
+    """Last resort when the AI's label is not a test name (for example a diagnosis written on the same line):
+    look for a known test name or abbreviation as a whole word in the printed line. Used only if exactly
+    one test is named there, so a line listing several tests is never guessed."""
+    low = (text or "").lower()
+    found: set[str] = set()
+    for alias, test in ALIAS_TO_CANONICAL.items():
+        if len(alias) < 3:
+            continue
+        if re.search(r"(?<![a-z0-9])" + re.escape(alias) + r"(?![a-z0-9])", low):
+            found.add(test)
+    return found.pop() if len(found) == 1 else "other"
+
+
 @dataclass
 class UnitConversionResult:
     value_num: Optional[float]
@@ -97,6 +111,23 @@ def _parse_float(raw: str) -> Optional[float]:
         return float(m.group(0))
     except ValueError:
         return None
+
+
+_PURE_NUMBER = re.compile(r"[<>]?\s*\d+(?:\.\d+)?")
+_NUMBER_AND_UNIT = re.compile(r"(\d+(?:\.\d+)?)\s*([A-Za-z%µμ][A-Za-z0-9%µμ/.]*)?\s*$")
+
+
+def split_value_and_unit(value_raw: str, unit_raw: Optional[str]) -> tuple[str, Optional[str], Optional[str]]:
+    """The AI sometimes returns a whole phrase as the value ("RBS-10mg/dl"). Keep just the number and, if the
+    unit was not given separately, the unit that followed it. The note records what was written."""
+    v = (value_raw or "").strip()
+    if not v or _PURE_NUMBER.fullmatch(v):
+        return v, unit_raw, None
+    m = _NUMBER_AND_UNIT.search(v)
+    if not m:
+        return v, unit_raw, None
+    unit = unit_raw if unit_raw and unit_raw.strip() else m.group(2)
+    return m.group(1), unit, f'value was written as "{v}"'
 
 
 def convert_unit(test: str, value_raw: str, unit_raw: Optional[str]) -> UnitConversionResult:
@@ -165,7 +196,8 @@ def parse_indian_date(raw_date: Optional[str]) -> tuple[Optional[date], Optional
         return None, None
     text = re.sub(r"^\s*(date|dated|report date|collected on)\s*[:\-]?\s*", "", raw_date.strip(), flags=re.IGNORECASE)
     # Require a day, a month and a year: dateutil would otherwise fill gaps with today's date.
-    if len(re.findall(r"\d+", text)) < 2 or not re.search(r"\d{4}|\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2}", text):
+    has_year = re.search(r"\d{4}|\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2}|\d{1,2}\s*[A-Za-z]{3,9}\.?,?\s*'?\d{2}\b", text)
+    if len(re.findall(r"\d+", text)) < 2 or not has_year:
         return None, "date not readable"
     try:
         if re.match(r"^\s*\d{4}[-/.]\d{1,2}[-/.]\d{1,2}", text):

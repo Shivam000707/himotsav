@@ -1,0 +1,29 @@
+{
+  "id": "chatcmpl-8baa3279-4382-4a4c-ab02-28f1d69d4369",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "[\n  {\"text\": \"Dr. B · Diabetes Clinic\", \"bbox\": [47, 28, 397, 54]},\n  {\"text\": \"PRESCRIPTION | Synthetic Demo Data\", \"bbox\": [47, 62, 423, 80]},\n  {\"text\": \"Patient: Ramesh Kumar | Age/Sex: 58 / M\", \"bbox\": [47, 126, 538, 148]},\n  {\"text\": \"Date: 02 Jul 2024\", \"bbox\": [708, 126, 910, 148]},\n  {\"text\": \"Rx\", \"bbox\": [47, 193, 98, 219]},\n  {\"text\": \"Tab. Glycomet 500 1-0-1\", \"bbox\": [64, 244, 470, 270]},\n  {\"text\": \"Tab. Amaryl ? mg 1-0-0\", \"bbox\": [64, 298, 467, 324]},\n  {\"text\": \"MediKiosk-DM Synthetic Test Document - Not a Real Patient Record\", \"bbox\": [47, 949, 680, 967]}\n]",
+        "refusal": null,
+        "role": "assistant"
+      },
+      "finish_reason": "stop",
+      "logprobs": null
+    }
+  ],
+  "created": 1795794465,
+  "model": "private/nvidia/nemotron-3.5-super-120b-a12b",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 2046,
+    "completion_tokens": 316,
+    "total_tokens": 2362,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

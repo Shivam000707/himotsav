@@ -1,0 +1,484 @@
+{
+  "personas": [
+    {
+      "key": "mohan",
+      "patient": {
+        "display_name": "Mohan Lal",
+        "age": 63,
+        "gender": "M",
+        "language": "hi"
+      },
+      "trajectory": "HbA1c rises through 2025, a second medicine is added in Oct 2025, then it comes down",
+      "intake": [
+        [
+          "diabetes_years",
+          8,
+          "आठ साल हो गए।"
+        ],
+        [
+          "current_meds",
+          [
+            {
+              "name": "Glycomet",
+              "frequency": "1-0-1"
+            },
+            {
+              "name": "Amaryl",
+              "frequency": "1-0-0"
+            }
+          ],
+          "दोनों गोलियाँ रोज़ लेता हूँ।"
+        ],
+        [
+          "missed_doses",
+          "never",
+          null
+        ],
+        [
+          "shaky_sweaty",
+          "no",
+          null
+        ],
+        [
+          "urgent_symptoms",
+          [
+            "none"
+          ],
+          null
+        ],
+        [
+          "feet",
+          [
+            "none"
+          ],
+          null
+        ],
+        [
+          "eyes",
+          "fine",
+          null
+        ],
+        [
+          "anything_else",
+          "",
+          null
+        ]
+      ],
+      "intake_meds": [
+        [
+          "Glycomet",
+          "1000 mg",
+          "1-0-1"
+        ],
+        [
+          "Amaryl",
+          "1 mg",
+          "1-0-0"
+        ]
+      ],
+      "papers": [
+        {
+          "id": "m1",
+          "kind": "lab",
+          "org": "Sunrise Pathology",
+          "theme": "sunrise",
+          "date": "12 Jan 2025",
+          "rows": [
+            {
+              "label": "HbA1c",
+              "value": "7.4",
+              "unit": "%",
+              "test": "hba1c"
+            },
+            {
+              "label": "Fasting glucose",
+              "value": "128",
+              "unit": "mg/dL",
+              "test": "fasting_glucose"
+            }
+          ]
+        },
+        {
+          "id": "m2",
+          "kind": "rx",
+          "org": "Dr. A - General Physician",
+          "theme": "dra",
+          "date": "15 Jan 2025",
+          "rows": [
+            {
+              "label": "Tab. Glycomet 500",
+              "value": "1-0-1",
+              "med_name": "Tab. Glycomet",
+              "strength": "500 mg",
+              "frequency": "1-0-1"
+            }
+          ]
+        },
+        {
+          "id": "m3",
+          "kind": "lab",
+          "org": "Sunrise Pathology",
+          "theme": "sunrise",
+          "date": "10 Apr 2025",
+          "rows": [
+            {
+              "label": "HbA1c",
+              "value": "8.1",
+              "unit": "%",
+              "test": "hba1c"
+            },
+            {
+              "label": "Fasting glucose",
+              "value": "146",
+              "unit": "mg/dL",
+              "test": "fasting_glucose"
+            }
+          ]
+        },
+        {
+          "id": "m4",
+          "kind": "lab",
+          "org": "Valley Diagnostics",
+          "theme": "valley",
+          "date": "08 Jul 2025",
+          "rows": [
+            {
+              "label": "HbA1c",
+              "value": "8.9",
+              "unit": "%",
+              "test": "hba1c"
+            },
+            {
+              "label": "Fasting glucose",
+              "value": "164",
+              "unit": "mg/dL",
+              "test": "fasting_glucose"
+            }
+          ]
+        },
+        {
+          "id": "m5",
+          "kind": "lab",
+          "org": "Valley Diagnostics",
+          "theme": "valley",
+          "date": "07 Oct 2025",
+          "rows": [
+            {
+              "label": "HbA1c",
+              "value": "9.4",
+              "unit": "%",
+              "test": "hba1c"
+            },
+            {
+              "label": "Fasting glucose",
+              "value": "182",
+              "unit": "mg/dL",
+              "test": "fasting_glucose"
+            }
+          ]
+        },
+        {
+          "id": "m6",
+          "kind": "rx",
+          "org": "Dr. B - Diabetes Clinic",
+          "theme": "drb",
+          "date": "18 Oct 2025",
+          "rows": [
+            {
+              "label": "Tab. Glycomet 1000",
+              "value": "1-0-1",
+              "med_name": "Tab. Glycomet",
+              "strength": "1000 mg",
+              "frequency": "1-0-1"
+            },
+            {
+              "label": "Tab. Amaryl 1",
+              "value": "1-0-0",
+              "med_name": "Tab. Amaryl",
+              "strength": "1 mg",
+              "frequency": "1-0-0"
+            }
+          ]
+        },
+        {
+          "id": "m7",
+          "kind": "lab",
+          "org": "City Health Lab",
+          "theme": "city",
+          "date": "12 Jan 2026",
+          "rows": [
+            {
+              "label": "HbA1c",
+              "value": "8.2",
+              "unit": "%",
+              "test": "hba1c"
+            },
+            {
+              "label": "Fasting glucose",
+              "value": "151",
+              "unit": "mg/dL",
+              "test": "fasting_glucose"
+            }
+          ]
+        },
+        {
+          "id": "m8",
+          "kind": "lab",
+          "org": "City Health Lab",
+          "theme": "city",
+          "date": "14 Apr 2026",
+          "rows": [
+            {
+              "label": "HbA1c",
+              "value": "7.6",
+              "unit": "%",
+              "test": "hba1c"
+            },
+            {
+              "label": "Fasting glucose",
+              "value": "138",
+              "unit": "mg/dL",
+              "test": "fasting_glucose"
+            }
+          ]
+        },
+        {
+          "id": "m9",
+          "kind": "lab",
+          "org": "City Health Lab",
+          "theme": "city",
+          "date": "21 Jul 2026",
+          "rows": [
+            {
+              "label": "HbA1c",
+              "value": "7.2",
+              "unit": "%",
+              "test": "hba1c"
+            },
+            {
+              "label": "Fasting glucose",
+              "value": "126",
+              "unit": "mg/dL",
+              "test": "fasting_glucose"
+            },
+            {
+              "label": "Creatinine",
+              "value": "1.0",
+              "unit": "mg/dL",
+              "test": "creatinine"
+            },
+            {
+              "label": "LDL cholesterol",
+              "value": "112",
+              "unit": "mg/dL",
+              "test": "ldl"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "kavita",
+      "patient": {
+        "display_name": "Kavita Sharma",
+        "age": 52,
+        "gender": "F",
+        "language": "hi"
+      },
+      "trajectory": "HbA1c steady for a year, then a sudden jump in Aug 2026",
+      "intake": [
+        [
+          "diabetes_years",
+          5,
+          "पाँच साल से।"
+        ],
+        [
+          "current_meds",
+          [
+            {
+              "name": "Glycomet",
+              "frequency": "1-0-0"
+            }
+          ],
+          "सुबह एक गोली।"
+        ],
+        [
+          "missed_doses",
+          "less_than_weekly",
+          null
+        ],
+        [
+          "shaky_sweaty",
+          "no",
+          null
+        ],
+        [
+          "urgent_symptoms",
+          [
+            "none"
+          ],
+          null
+        ],
+        [
+          "feet",
+          [
+            "none"
+          ],
+          null
+        ],
+        [
+          "eyes",
+          "blurry",
+          "पिछले कुछ हफ़्तों से थोड़ा धुंधला दिखता है।"
+        ],
+        [
+          "anything_else",
+          "",
+          null
+        ]
+      ],
+      "intake_meds": [
+        [
+          "Glycomet",
+          "500 mg",
+          "1-0-0"
+        ]
+      ],
+      "papers": [
+        {
+          "id": "k1",
+          "kind": "lab",
+          "org": "Sunrise Pathology",
+          "theme": "sunrise",
+          "date": "10 Aug 2025",
+          "rows": [
+            {
+              "label": "HbA1c",
+              "value": "6.9",
+              "unit": "%",
+              "test": "hba1c"
+            },
+            {
+              "label": "Fasting glucose",
+              "value": "118",
+              "unit": "mg/dL",
+              "test": "fasting_glucose"
+            }
+          ]
+        },
+        {
+          "id": "k2",
+          "kind": "rx",
+          "org": "Dr. A - General Physician",
+          "theme": "dra",
+          "date": "15 Aug 2025",
+          "rows": [
+            {
+              "label": "Tab. Glycomet 500",
+              "value": "1-0-0",
+              "med_name": "Tab. Glycomet",
+              "strength": "500 mg",
+              "frequency": "1-0-0"
+            }
+          ]
+        },
+        {
+          "id": "k3",
+          "kind": "lab",
+          "org": "Valley Diagnostics",
+          "theme": "valley",
+          "date": "12 Nov 2025",
+          "rows": [
+            {
+              "label": "HbA1c",
+              "value": "7.0",
+              "unit": "%",
+              "test": "hba1c"
+            },
+            {
+              "label": "Fasting glucose",
+              "value": "121",
+              "unit": "mg/dL",
+              "test": "fasting_glucose"
+            }
+          ]
+        },
+        {
+          "id": "k4",
+          "kind": "lab",
+          "org": "Valley Diagnostics",
+          "theme": "valley",
+          "date": "10 Feb 2026",
+          "rows": [
+            {
+              "label": "HbA1c",
+              "value": "6.8",
+              "unit": "%",
+              "test": "hba1c"
+            },
+            {
+              "label": "Fasting glucose",
+              "value": "116",
+              "unit": "mg/dL",
+              "test": "fasting_glucose"
+            },
+            {
+              "label": "Creatinine",
+              "value": "0.8",
+              "unit": "mg/dL",
+              "test": "creatinine"
+            },
+            {
+              "label": "LDL cholesterol",
+              "value": "104",
+              "unit": "mg/dL",
+              "test": "ldl"
+            }
+          ]
+        },
+        {
+          "id": "k5",
+          "kind": "lab",
+          "org": "City Health Lab",
+          "theme": "city",
+          "date": "12 May 2026",
+          "rows": [
+            {
+              "label": "HbA1c",
+              "value": "7.1",
+              "unit": "%",
+              "test": "hba1c"
+            },
+            {
+              "label": "Fasting glucose",
+              "value": "124",
+              "unit": "mg/dL",
+              "test": "fasting_glucose"
+            }
+          ]
+        },
+        {
+          "id": "k6",
+          "kind": "lab",
+          "org": "City Health Lab",
+          "theme": "city",
+          "date": "12 Aug 2026",
+          "rows": [
+            {
+              "label": "HbA1c",
+              "value": "8.4",
+              "unit": "%",
+              "test": "hba1c"
+            },
+            {
+              "label": "Fasting glucose",
+              "value": "168",
+              "unit": "mg/dL",
+              "test": "fasting_glucose"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

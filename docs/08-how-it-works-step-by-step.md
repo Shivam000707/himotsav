@@ -141,7 +141,16 @@ Each extracted value must actually appear in the text of the line it points at.
 - **Dates.** Indian reports are day first. "09/07/2024" is read as 9 July. If the day and month could swap, the date is kept day first and the note "date order assumed DD/MM" is added. A date missing its day, month or year is "date not readable".
 - **Medicines.** The brand is matched to its generic name (Glycomet to metformin, Amaryl to glimepiride, Telma to telmisartan, and so on, from a 13-row list), ignoring "Tab.", "Cap." and strengths, with a fuzzy match of at least 88. **A brand that does not match stays unmapped**, so "Amaryl M" is never silently turned into glimepiride. The name as written is always kept. The list is a draft that needs clinician review.
 
-### Step 9. Save
+### Step 9. Second reading (AI use #3, then plain code compares)
+A different model, **`nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`**, re-reads **each line that holds a value** from a zoomed, enlarged crop of that line. It only transcribes. Plain code then compares the numbers:
+- a test value that does not appear in the second reading, or a medicine dose or timing (such as `1-0-1`) that differs, is **marked unsure** and the note shows what the second reader saw;
+- a value is **never changed**, only marked, so the doctor sees both readings and rule 9 lists it;
+- if the second reader is unavailable, the check is skipped and nothing is marked (it never fails an upload);
+- one call per line, so a page with two values on two lines costs two extra calls.
+
+Why: on a real handwritten note the first reader read "RBS 50 mg/dl" as **10** and reported it as clear. The grounding check in step 7 could not catch it, because 10 really was in the line the model wrote. The second reader read 50, so the disagreement is now flagged. This is one note, not a proof of reliability. It cannot catch an error **both** readers share.
+
+### Step 10. Save
 Test results and medicines are saved, each with its document, page and box. The document becomes "done". The kiosk shows the count.
 
 ### Saved replies (cache)
@@ -190,6 +199,20 @@ Every patient who used the kiosk, with age, language and check-in date. An empty
 8. **What the patient said** (right-hand column). Each confirmed answer, with the patient's own words in handwriting. Unanswered questions are listed.
 9. **Your notes** (right-hand column). A text box that **saves itself** about half a second after typing stops.
 
+### Tracking over time (added 27 Nov 2026)
+All of this is plain code on the saved records. None of it is AI, and none of it diagnoses or advises.
+
+- **Trends for every test**, not only HbA1c and glucose: each test with dated numbers gets a chart on a true date axis. Points open their paper. Under each chart: the change since the previous result and a straight-line rate of change per year (only when there are at least 2 results spanning 60 days or more).
+- **Medicine events on the timeline.** From the dated prescriptions the app lists, and draws as dashed lines on the charts: *first prescription seen*, *dose or timing differs from the previous prescription*, and *not on a later prescription*. Unsure doses never create a "changed" event. The page says this shows the order of events only and does not show that a medicine caused any change.
+- **Monitoring plan, set by the doctor.** For each test the doctor can type a target range, a **review margin** and a **repeat interval**. Nothing is pre-filled or suggested, and a blank field means none is set.
+  - A target range is drawn as a shaded band on the chart. It never raises a flag by itself.
+  - A repeat interval replaces the draft default (90 / 365 / 365 days) in the matching "up to date" rule for that patient, and the evidence says "interval set by the doctor".
+  - A review margin turns on one extra rule, **change from own baseline**: the latest value is compared with the patient's own average over the previous 12 months (at least 2 earlier results needed). If it is further away than the margin, the doctor sees "HbA1c is 1.43 above this patient's own average of 6.97 ... the doctor set the review margin at 1".
+- **Test schedule.** A table of Last done, Repeat, Next due and a status: Completed, Due (within 14 days of the due date), Overdue, No record, or Interval not set.
+- **Three demo patients with different trajectories** (all made up, backup values, labelled as such): Ramesh ji (slow rise with a long gap), Mohan Lal (HbA1c rises through 2025, a second medicine is added in Oct 2025, then it falls), and Kavita Sharma (steady for a year, then a jump in Aug 2026 that the baseline check catches once a margin is set).
+
+Not built: repeated kiosk visits for the same patient (each kiosk session still creates a new patient), blood pressure and cardiovascular history, eye or foot screening records, a patient-facing progress view, and CGM data.
+
 ### Opening a source
 Clicking any highlighted value opens a panel with:
 - the value, and what was printed on the paper if it was converted;
@@ -215,6 +238,8 @@ The print layout drops the buttons and panels and fits the summary on one page, 
 | Read a page photo into lines and positions | **AI** | `nvidia/nemotron-3.5-super-vl-120b-a12b` |
 | Turn lines into test values and medicines | **AI** | `nvidia/nemotron-3.5-lightning-30b-a3b` |
 | Fallback: read the image straight into fields | **AI** | `nvidia/nemotron-3.5-super-vl-120b-a12b` |
+| Second reading of each value line, from a zoomed crop | **AI** | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` |
+| Compare the two readings and mark disagreements unsure | Plain code | none |
 | Voice to text | **AI** (optional) | Parakeet 1.1B multilingual, or the browser |
 | Check a value really appears on the page | Plain code | none |
 | Names, units, dates, medicine brands | Plain code | none |
@@ -293,7 +318,8 @@ Rule results and the summary are **computed fresh each time they are requested**
 
 **Not proven, say so openly**
 - **Small and synthetic.** 7 made-up papers for one made-up patient. This shows direction, not general accuracy, and says nothing about real handwriting or real lab layouts.
-- **The smudged dose fails on the damaged image.** On the clean image the AI wrote "? mg" and flagged it. On the damaged copy it **guessed "1 mg" and did not flag it**. The planned fix is to read each prescription a second, independent way and mark a dose unsure whenever the two readings disagree. It is not built yet.
+- **A faint smudge can still be guessed.** On the clean synthetic prescription the AI wrote "? mg" and flagged it. On the damaged copy a faint ghost of a digit remains and **both readers read it as "1 mg"**, so the second reading agrees and nothing is flagged. The second reading catches readers that disagree (it caught a real 10-versus-50 misread on a handwritten note). It cannot catch a mistake both readers make.
+- **Real handwriting is much harder than the synthetic set.** On a real handwritten hospital note the first reader misread several words and one number; only the number disagreement is caught automatically. Names and ordinary words can still be wrong, which is why every value links to its paper.
 - **Voice through NVIDIA is untested.** Only the browser fallback is known to work.
 - **Rule thresholds are drafts.** They have not been reviewed by a doctor.
 - **No clinical validation or pilot** has been done, and no real patient data has ever been used.
